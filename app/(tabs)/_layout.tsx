@@ -35,6 +35,41 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="quick-actions"
+        options={{
+          title: "إضافة",
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="plus.circle" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="sessions"
+        options={{
+          title: "الجلسات",
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="calendar.badge.clock" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="cases"
+        options={{
+          title: "القضايا",
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="briefcase.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="files"
+        options={{
+          title: "الملفات",
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="briefcase.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="finance"
+        options={{
+          title: "المالية",
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="wallet.pass.fill" color={color} />,
+        }}
+      />
     </Tabs>
   );
 }

@@ -6,6 +6,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
+import { useOfflineSync } from "@/hooks/use-offline-sync";
 import { getDashboardData, type DashboardData } from "@/lib/office-data";
 import { supabase } from "@/lib/supabase";
 
@@ -24,6 +25,7 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const offline = useOfflineSync(dashboard?.membership.office_id);
 
   const loadDashboard = useCallback(async () => {
     if (!session) return;
@@ -78,6 +80,11 @@ export default function DashboardScreen() {
           <Pressable onPress={handleSignOut} style={({ pressed }) => [{ width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }, pressed && { opacity: 0.7 }]}>
             <IconSymbol name="person.crop.circle" size={25} color={colors.primary} />
           </Pressable>
+        </View>
+
+        <View className="rounded-2xl px-4 py-3 mb-5 flex-row items-center justify-between" style={{ backgroundColor: offline.isOnline ? `${colors.success}18` : `${colors.warning}22`, borderWidth: 1, borderColor: offline.isOnline ? `${colors.success}55` : `${colors.warning}66`, direction: "rtl" }}>
+          <Text className="text-xs font-bold" style={{ color: offline.isOnline ? colors.success : colors.warning }}>{offline.isOnline ? "متصل — تتم المزامنة تلقائيًا" : "غير متصل — يمكنك متابعة العمل"}</Text>
+          {offline.pending > 0 ? <Pressable onPress={offline.syncNow}><Text className="text-xs font-bold" style={{ color: colors.primary }}>{offline.pending} قيد الانتظار · مزامنة</Text></Pressable> : <Text className="text-xs text-muted">لا تغييرات معلقة</Text>}
         </View>
 
         <View className="rounded-3xl p-5 mb-5" style={{ backgroundColor: colors.foreground, direction: "rtl" }}>

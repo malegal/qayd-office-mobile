@@ -26,6 +26,7 @@ const MAPPING = {
   "eye.fill": "visibility",
   "eye.slash.fill": "visibility-off",
   "plus": "add",
+  "plus.circle": "add-circle",
   "paperplane.fill": "send",
   "chevron.left.forwardslash.chevron.right": "code",
   "chevron.right": "chevron-right",

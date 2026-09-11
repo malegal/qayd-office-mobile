@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 
 import { supabase } from "@/lib/supabase";
+import { clearOfflineData } from "@/lib/offline-store";
 
 export function useSupabaseAuth() {
   const [session, setSession] = useState<Session | null>(null);
@@ -29,6 +30,7 @@ export function useSupabaseAuth() {
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
+    await clearOfflineData();
   }, []);
 
   return { session, loading, signOut };
