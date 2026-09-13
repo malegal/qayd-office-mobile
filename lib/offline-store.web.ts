@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export type OfflineEntity = "sessions" | "tasks" | "expenses" | "fees" | "payments";
+export type OfflineEntity = "sessions" | "tasks" | "expenses" | "fees" | "payments" | "financial_transactions";
 export type OfflineOperation = "insert" | "update";
 export type OutboxStatus = "pending" | "conflict" | "error";
 

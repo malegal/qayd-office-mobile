@@ -6,47 +6,21 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { useOfflineSync } from "@/hooks/use-offline-sync";
 import { getCurrentMembership, type OfficeMembership } from "@/lib/office-data";
-import { getCases, getExpenses, getFees, getPayments, type ExpenseRow, type FeeRow, type PaymentRow } from "@/lib/office-lists";
+import { getFinancialTransactions, type FinancialTransaction } from "@/lib/office-lists";
 
-type FinanceRow =
-  | { kind: "expense"; row: ExpenseRow }
-  | { kind: "fee"; row: FeeRow }
-  | { kind: "payment"; row: PaymentRow };
-
+type Totals = { income: number; expense: number; officeIncome: number; officeExpense: number; caseIncome: number; caseExpense: number; fileIncome: number; fileExpense: number };
+const emptyTotals: Totals = { income: 0, expense: 0, officeIncome: 0, officeExpense: 0, caseIncome: 0, caseExpense: 0, fileIncome: 0, fileExpense: 0 };
+function calculate(rows: FinancialTransaction[]): Totals { return rows.reduce((t, r) => { const value = Number(r.amount) || 0; const sign = r.transaction_type === "income" ? 1 : -1; t[r.transaction_type] += value; const key = `${r.transaction_scope}${r.transaction_type === "income" ? "Income" : "Expense"}` as keyof Totals; t[key] += value; void sign; return t; }, { ...emptyTotals }); }
 export default function FinanceScreen() {
-  const colors = useColors();
-  const [membership, setMembership] = useState<OfficeMembership | null>(null);
-  const [rows, setRows] = useState<FinanceRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const offline = useOfflineSync(membership?.office_id);
-  const load = useCallback(async () => {
-    if (!membership) return;
-    setLoading(true);
-    try {
-      const cases = await getCases(membership.office_id);
-      const caseIds = cases.map((item) => item.id);
-      if (!caseIds.length) { setRows([]); return; }
-      const [expenses, fees, payments] = await Promise.all([getExpenses(membership.office_id), getFees(membership.office_id, caseIds), getPayments(membership.office_id, caseIds)]);
-      setRows([
-        ...expenses.map((row) => ({ kind: "expense" as const, row })),
-        ...fees.map((row) => ({ kind: "fee" as const, row })),
-        ...payments.map((row) => ({ kind: "payment" as const, row })),
-      ]);
-    } finally { setLoading(false); }
-  }, [membership]);
-  useEffect(() => { getCurrentMembership().then(setMembership).catch(() => setLoading(false)); }, []);
-  useEffect(() => { load(); }, [load]);
-
-  if (loading && !rows.length) return <ScreenContainer className="items-center justify-center"><ActivityIndicator color={colors.primary} /><Text className="text-sm text-muted mt-3">جاري تحميل الحسابات...</Text></ScreenContainer>;
-  return <ScreenContainer className="px-5" safeAreaClassName="bg-background">
-    <View className="flex-row items-center justify-between mt-5 mb-4" style={{ direction: "rtl" }}><View><Text className="text-2xl font-bold text-foreground">المالية</Text><Text className="text-sm text-muted mt-1">المصروفات والأتعاب والدفعات.</Text></View><Pressable onPress={() => router.push("/(tabs)/quick-actions")} style={{ backgroundColor: colors.primary, borderRadius: 14, padding: 12 }}><IconSymbol name="plus" size={22} color={colors.background} /></Pressable></View>
-    <View className="rounded-2xl px-4 py-3 mb-4 flex-row items-center justify-between" style={{ backgroundColor: offline.isOnline ? `${colors.success}18` : `${colors.warning}22`, direction: "rtl" }}><Text className="text-xs font-bold" style={{ color: offline.isOnline ? colors.success : colors.warning }}>{offline.isOnline ? "متصل" : "غير متصل"}</Text><Text className="text-xs text-muted">{offline.pending ? `${offline.pending} معلقة` : "مزامن"}</Text></View>
-    <FlatList data={rows} keyExtractor={(item, index) => `${item.kind}-${item.kind === "expense" ? item.row.id : item.kind === "fee" ? item.row.case_id : item.row.id}-${index}`} contentContainerStyle={{ paddingBottom: 30 }} ListHeaderComponent={<Text className="text-lg font-bold text-foreground mb-3" style={{ textAlign: "right" }}>آخر العمليات ({rows.length})</Text>} renderItem={({ item }) => <FinanceCard item={item} colors={colors} />} ListEmptyComponent={<Text className="text-sm text-muted text-center py-8">لا توجد عمليات مالية للقضايا الحالية.</Text>} />
+  const colors = useColors(); const [membership, setMembership] = useState<OfficeMembership | null>(null); const [rows, setRows] = useState<FinancialTransaction[]>([]); const [totals, setTotals] = useState(emptyTotals); const [loading, setLoading] = useState(true); const offline = useOfflineSync(membership?.office_id);
+  const load = useCallback(async () => { if (!membership) return; setLoading(true); try { const data = await getFinancialTransactions(membership.office_id); setRows(data); setTotals(calculate(data)); } finally { setLoading(false); } }, [membership]);
+  useEffect(() => { getCurrentMembership().then(setMembership).catch(() => setLoading(false)); }, []); useEffect(() => { load(); }, [load]);
+  if (loading && !rows.length) return <ScreenContainer className="items-center justify-center"><ActivityIndicator color={colors.primary} /><Text className="text-sm text-muted mt-3">جاري تحميل دفتر المالية...</Text></ScreenContainer>;
+  return <ScreenContainer className="px-5" safeAreaClassName="bg-background"><View className="flex-row items-center justify-between mt-5 mb-4" style={{ direction: "rtl" }}><View><Text className="text-2xl font-bold text-foreground">المالية</Text><Text className="text-sm text-muted mt-1">دفتر موحد للمكتب والقضايا والملفات</Text></View><Pressable onPress={() => router.push("/(tabs)/quick-actions")} style={{ backgroundColor: colors.primary, borderRadius: 14, padding: 12 }}><IconSymbol name="plus" size={22} color={colors.background} /></Pressable></View>
+    <View className="rounded-2xl p-4 mb-4" style={{ backgroundColor: colors.foreground, direction: "rtl" }}><Text className="text-xs" style={{ color: colors.primary }}>الصافي العام</Text><Text className="text-3xl font-bold mt-1" style={{ color: colors.background }}>{(totals.income - totals.expense).toFixed(2)} ج.م</Text><Text className="text-xs mt-2" style={{ color: "#B9C5D0" }}>متحصلات {totals.income.toFixed(2)} · مصروفات {totals.expense.toFixed(2)}</Text></View>
+    <View className="flex-row flex-wrap justify-between mb-4" style={{ direction: "rtl" }}>{[["متحصلات المكتب", totals.officeIncome, colors.success], ["مصروفات المكتب", totals.officeExpense, colors.error], ["صافي القضايا", totals.caseIncome - totals.caseExpense, colors.primary], ["صافي الملفات", totals.fileIncome - totals.fileExpense, colors.primary]].map(([label, value, color]) => <View key={String(label)} className="rounded-2xl p-3 mb-3" style={{ width: "48.2%", backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}><Text className="text-xs text-muted">{label}</Text><Text className="text-lg font-bold mt-2" style={{ color: color as string }}>{Number(value).toFixed(2)}</Text></View>)}</View>
+    <View className="rounded-2xl px-4 py-3 mb-4 flex-row items-center justify-between" style={{ backgroundColor: offline.isOnline ? `${colors.success}18` : `${colors.warning}22`, direction: "rtl" }}><Text className="text-xs font-bold" style={{ color: offline.isOnline ? colors.success : colors.warning }}>{offline.isOnline ? "متصل" : "غير متصل"}</Text><Text className="text-xs text-muted">{offline.pending ? `${offline.pending} معلقة` : "المزامنة محدثة"}</Text></View>
+    <FlatList data={rows} keyExtractor={(item) => item.id} contentContainerStyle={{ paddingBottom: 30 }} ListHeaderComponent={<Text className="text-lg font-bold text-foreground mb-3" style={{ textAlign: "right" }}>آخر العمليات ({rows.length})</Text>} renderItem={({ item }) => <TransactionCard item={item} colors={colors} />} ListEmptyComponent={<Text className="text-sm text-muted text-center py-8">لا توجد عمليات مالية بعد.</Text>} />
   </ScreenContainer>;
 }
-
-function FinanceCard({ item, colors }: { item: FinanceRow; colors: ReturnType<typeof useColors> }) {
-  if (item.kind === "expense") return <View className="rounded-2xl p-4 mb-3" style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, direction: "rtl" }}><View className="flex-row items-center justify-between"><Text className="text-sm font-bold text-foreground">مصروف · {item.row.category}</Text><Text className="text-sm font-bold" style={{ color: colors.error }}>{Number(item.row.amount).toFixed(2)}</Text></View><Text className="text-xs text-muted mt-2">{item.row.expense_date} · القضية: {item.row.case_id || "ملف"}</Text><Text className="text-xs text-muted mt-1">{item.row.description || "بدون ملاحظة"}</Text></View>;
-  if (item.kind === "fee") return <View className="rounded-2xl p-4 mb-3" style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, direction: "rtl" }}><View className="flex-row items-center justify-between"><Text className="text-sm font-bold text-foreground">أتعاب القضية</Text><Text className="text-sm font-bold" style={{ color: colors.primary }}>{Number(item.row.total).toFixed(2)}</Text></View><Text className="text-xs text-muted mt-2">القضية: {item.row.case_id} · المقبوض: {Number(item.row.paid).toFixed(2)}</Text><Text className="text-xs text-muted mt-1">المتبقي: {Number(item.row.remaining).toFixed(2)}</Text></View>;
-  return <View className="rounded-2xl p-4 mb-3" style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, direction: "rtl" }}><View className="flex-row items-center justify-between"><Text className="text-sm font-bold text-foreground">دفعة مقبوضة</Text><Text className="text-sm font-bold" style={{ color: colors.success }}>{Number(item.row.amount).toFixed(2)}</Text></View><Text className="text-xs text-muted mt-2">{item.row.date} · القضية: {item.row.case_id}</Text><Text className="text-xs text-muted mt-1">{item.row.note || "بدون ملاحظة"}</Text></View>;
-}
+function TransactionCard({ item, colors }: { item: FinancialTransaction; colors: ReturnType<typeof useColors> }) { const income = item.transaction_type === "income"; const scope = item.transaction_scope === "office" ? "المكتب" : item.transaction_scope === "case" ? "قضية" : "ملف"; return <View className="rounded-2xl p-4 mb-3" style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, direction: "rtl" }}><View className="flex-row items-center justify-between"><Text className="text-sm font-bold text-foreground">{income ? "متحصل" : "مصروف"} · {scope}</Text><Text className="text-sm font-bold" style={{ color: income ? colors.success : colors.error }}>{income ? "+" : "-"}{Number(item.amount).toFixed(2)} ج.م</Text></View><Text className="text-xs text-muted mt-2">{item.transaction_date} · {item.category}</Text><Text className="text-xs text-muted mt-1">{item.description || "بدون ملاحظة"}</Text></View>; }
