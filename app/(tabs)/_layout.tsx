@@ -5,6 +5,25 @@ import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Platform } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { useEffect, useState } from "react";
+import { AppState } from "react-native";
+import { getCurrentMembership } from "@/lib/office-data";
+import { useOfflineSync } from "@/hooks/use-offline-sync";
+
+function SyncBootstrap() {
+  const [officeId, setOfficeId] = useState<string>();
+  const { syncNow } = useOfflineSync(officeId);
+  useEffect(() => { getCurrentMembership().then((membership) => setOfficeId(membership?.office_id)).catch(() => undefined); }, []);
+  useEffect(() => {
+    if (!officeId) return;
+    const run = () => { syncNow().catch(() => undefined); };
+    run();
+    const interval = setInterval(run, 60_000);
+    const subscription = AppState.addEventListener("change", (state) => { if (state === "active") run(); });
+    return () => { clearInterval(interval); subscription.remove(); };
+  }, [officeId, syncNow]);
+  return null;
+}
 
 export default function TabLayout() {
   const colors = useColors();
@@ -13,6 +32,8 @@ export default function TabLayout() {
   const tabBarHeight = 56 + bottomPadding;
 
   return (
+    <>
+      <SyncBootstrap />
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: colors.tint,
@@ -78,5 +99,6 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    </>
   );
 }
