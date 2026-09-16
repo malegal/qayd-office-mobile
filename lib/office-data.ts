@@ -40,6 +40,10 @@ async function countRows(table: string, officeId: string, filters: Record<string
   return count ?? 0;
 }
 
+async function safeCountRows(table: string, officeId: string, filters: Record<string, unknown> = {}) {
+  try { return await countRows(table, officeId, filters); } catch { return 0; }
+}
+
 export async function getCurrentMembership() {
   const { data: { session } } = await supabase.auth.getSession();
   const user = session?.user;
@@ -69,10 +73,10 @@ export async function getDashboardData(): Promise<DashboardData | null> {
 
   try {
     const [cases, files, openTasks, expenses, upcomingSessionsRows, openTasksRows] = await Promise.all([
-      countRows("cases", membership.office_id, { archived: 0 }),
-      countRows("office_files", membership.office_id, { archived: false }),
-      countRows("tasks", membership.office_id, { completed: false }),
-      countRows("expenses", membership.office_id),
+      safeCountRows("cases", membership.office_id, { archived: 0 }),
+      safeCountRows("office_files", membership.office_id, { archived: false }),
+      safeCountRows("tasks", membership.office_id, { completed: false }),
+      safeCountRows("expenses", membership.office_id),
       supabase
         .from("sessions")
         .select("id, case_id, session_date, case_status, decision")

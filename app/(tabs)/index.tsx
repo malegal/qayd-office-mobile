@@ -52,6 +52,12 @@ export default function DashboardScreen() {
     loadDashboard();
   };
 
+  useEffect(() => {
+    if (!session) return;
+    const timer = setInterval(() => loadDashboard(), 60_000);
+    return () => clearInterval(timer);
+  }, [session, loadDashboard]);
+
   const handleSignOut = async () => {
     await signOut();
     router.replace("/");
@@ -98,7 +104,7 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {error ? <View className="rounded-2xl p-4 mb-5" style={{ backgroundColor: `${colors.error}18`, borderWidth: 1, borderColor: `${colors.error}55`, direction: "rtl" }}><Text className="text-sm" style={{ color: colors.error }}>{error}</Text></View> : null}
+        {error ? <View className="rounded-2xl p-4 mb-5" style={{ backgroundColor: `${colors.error}18`, borderWidth: 1, borderColor: `${colors.error}55`, direction: "rtl" }}><Text className="text-sm" style={{ color: colors.error }}>{error}</Text><Pressable onPress={refresh} style={{ marginTop: 10, alignSelf: "flex-start" }}><Text className="text-sm font-bold" style={{ color: colors.primary }}>إعادة المحاولة</Text></Pressable></View> : null}
 
         <View className="flex-row flex-wrap justify-between" style={{ direction: "rtl" }}>
           {statCards.map((card) => (
