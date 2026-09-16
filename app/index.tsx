@@ -44,9 +44,9 @@ export default function LoginScreen() {
       <View className="flex-1 px-6 justify-center" style={{ direction: "rtl" }}>
         <View className="items-center mb-10">
           <View className="w-20 h-20 rounded-3xl items-center justify-center mb-5" style={{ backgroundColor: colors.foreground }}>
-            <Text className="text-4xl font-bold" style={{ color: colors.primary }}>ق</Text>
+            <Text className="text-4xl font-bold" style={{ color: colors.primary }}>Q</Text>
           </View>
-          <Text className="text-3xl font-bold text-foreground text-center">Qayd Office</Text>
+          <Text className="text-3xl font-bold text-foreground text-center">Qayd Mobile</Text>
           <Text className="text-base text-muted mt-2 text-center">إدارة المكتب القانوني</Text>
         </View>
 

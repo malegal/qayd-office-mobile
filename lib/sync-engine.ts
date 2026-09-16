@@ -12,6 +12,11 @@ async function push(item: OutboxItem) {
     if (error) throw error;
     return { status: "applied" };
   }
+  if (item.entityType === "fees") {
+    const { error } = await supabase.from("fees").upsert({ case_id: item.entityId, ...item.payload }, { onConflict: "case_id" });
+    if (error) throw error;
+    return { status: "applied" };
+  }
   const { data, error } = await supabase.rpc("apply_mobile_operation", {
     p_operation_id: item.operationId, p_office_id: item.officeId, p_entity_type: item.entityType,
     p_entity_id: item.entityId, p_operation: item.operation, p_payload: item.payload, p_base_updated_at: item.baseUpdatedAt,
