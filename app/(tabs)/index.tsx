@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Modal, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -9,6 +9,7 @@ import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
 import { useOfflineSync } from "@/hooks/use-offline-sync";
 import { getDashboardData, type DashboardData } from "@/lib/office-data";
 import { supabase } from "@/lib/supabase";
+import { getCaseDetails, type CaseDetails } from "@/lib/office-lists";
 
 const statCards = [
   { key: "cases", label: "قضايا نشطة", icon: "briefcase.fill" as const },
@@ -25,6 +26,7 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [selectedCase, setSelectedCase] = useState<CaseDetails | null>(null);
   const offline = useOfflineSync(dashboard?.membership.office_id);
 
   const loadDashboard = useCallback(async () => {
@@ -124,13 +126,15 @@ export default function DashboardScreen() {
             <Text className="text-lg font-bold text-foreground">الجلسات القادمة</Text>
             <Text className="text-xs font-bold" style={{ color: colors.primary }}>عرض الكل</Text>
           </View>
-          {dashboard?.upcomingSessions.length ? dashboard.upcomingSessions.map((item) => (
-            <View key={item.id} className="flex-row items-center py-3" style={{ borderTopWidth: 1, borderTopColor: colors.border }}>
-              <View className="w-10 h-10 rounded-xl items-center justify-center ml-3" style={{ backgroundColor: `${colors.primary}20` }}><IconSymbol name="calendar.badge.clock" size={20} color={colors.primary} /></View>
-              <View className="flex-1"><Text className="text-sm font-bold text-foreground">{item.session_date}</Text><Text className="text-xs text-muted mt-1">{item.case_status || "جلسة قضية"}</Text></View>
-              <Text className="text-xs text-muted">{item.case_id}</Text>
-            </View>
-          )) : <Text className="text-sm text-muted py-3">لا توجد جلسات قادمة مسجلة.</Text>}
+          {dashboard?.upcomingSessions.length ? dashboard.upcomingSessions.map((item) => {
+            const c = item.case;
+            return <Pressable key={item.id} onPress={async () => { if (c) setSelectedCase(await getCaseDetails(dashboard.membership.office_id, c.id)); }} className="py-3" style={({ pressed }) => [{ borderTopWidth: 1, borderTopColor: colors.border, opacity: pressed ? 0.7 : 1 }]}>
+              <View className="flex-row items-center" style={{ direction: "rtl" }}>
+                <View className="w-10 h-10 rounded-xl items-center justify-center ml-3" style={{ backgroundColor: `${colors.primary}20` }}><IconSymbol name="calendar.badge.clock" size={20} color={colors.primary} /></View>
+                <View className="flex-1"><Text className="text-sm font-bold text-foreground">{c?.client_name || "قضية بدون اسم"}</Text><Text className="text-xs text-muted mt-1">رقم القضية: {c?.case_number || "غير مسجل"}{c?.case_year ? ` / ${c.case_year}` : ""}</Text><Text className="text-xs text-muted mt-1">الجلسة: {item.session_date} · {item.case_status || "غير محددة"}</Text></View>
+              </View>
+            </Pressable>;
+          }) : <Text className="text-sm text-muted py-3">لا توجد جلسات قادمة مسجلة.</Text>}
         </View>
 
         <View className="rounded-2xl p-4 mt-4" style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, direction: "rtl" }}>
@@ -139,6 +143,8 @@ export default function DashboardScreen() {
             <View key={task.id} className="py-3" style={{ borderTopWidth: 1, borderTopColor: colors.border }}><Text className="text-sm font-bold text-foreground">{task.description}</Text><Text className="text-xs text-muted mt-1">الاستحقاق: {task.date}</Text></View>
           )) : <Text className="text-sm text-muted py-3">لا توجد مهام مفتوحة.</Text>}
         </View>
+
+        <Modal visible={Boolean(selectedCase)} transparent animationType="slide" onRequestClose={() => setSelectedCase(null)}><View style={{ flex: 1, backgroundColor: "#0008", justifyContent: "flex-end" }}><View style={{ maxHeight: "90%", backgroundColor: colors.background, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, direction: "rtl" }}><Pressable onPress={() => setSelectedCase(null)} style={{ alignSelf: "flex-start", padding: 8 }}><Text style={{ color: colors.primary, fontWeight: "700" }}>إغلاق</Text></Pressable>{selectedCase ? <ScrollView><Text className="text-xl font-bold text-foreground mb-4">بيانات القضية</Text><Text className="text-base font-bold text-foreground">العميل: {selectedCase.case.client_name || "غير مسجل"}</Text><Text className="text-sm text-muted mt-2">الخصم: {selectedCase.case.opponent_name || "غير مسجل"}</Text><Text className="text-sm text-muted mt-2">رقم القضية: {selectedCase.case.case_number || "غير مسجل"}{selectedCase.case.case_year ? ` / ${selectedCase.case.case_year}` : ""}</Text><Text className="text-sm text-muted mt-2">المحكمة: {selectedCase.case.court_name || "غير مسجلة"}</Text><Text className="text-sm text-muted mt-2">الدائرة: {selectedCase.case.circuit || "غير مسجلة"}</Text><Text className="text-sm text-muted mt-2">الموضوع: {selectedCase.case.case_subject || "غير مسجل"}</Text><Text className="text-base font-bold text-foreground mt-5 mb-2">الجلسات</Text>{selectedCase.sessions.length ? selectedCase.sessions.map((session) => <View key={session.id} className="rounded-xl p-3 mb-2" style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}><Text className="text-sm font-bold text-foreground">{session.session_date}</Text><Text className="text-xs text-muted mt-1">{session.case_status || "غير محددة"} · {session.decision || "لا يوجد قرار"}</Text></View>) : <Text className="text-sm text-muted">لا توجد جلسات.</Text>}</ScrollView> : null}</View></View></Modal>
 
         <Pressable onPress={() => supabase.auth.signOut()} style={({ pressed }) => [{ alignItems: "center", paddingVertical: 18 }, pressed && { opacity: 0.6 }]}><Text className="text-sm font-bold" style={{ color: colors.error }}>تسجيل الخروج</Text></Pressable>
       </ScrollView>

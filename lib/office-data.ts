@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { cacheJson, readCachedJson } from "@/lib/offline-store";
+import type { CaseRow } from "@/lib/office-lists";
 
 export type OfficeMembership = {
   user_id: string;
@@ -23,6 +24,7 @@ export type DashboardData = {
     session_date: string;
     case_status: string | null;
     decision: string | null;
+    case: Pick<CaseRow, "id" | "case_code" | "client_name" | "opponent_name" | "case_number" | "case_year" | "court_name" | "circuit" | "case_subject"> | null;
   }>;
   openTasks: Array<{
     id: string;
@@ -72,7 +74,7 @@ export async function getDashboardData(): Promise<DashboardData | null> {
   const today = new Date().toISOString().slice(0, 10);
 
   try {
-    const [cases, files, openTasks, expenses, upcomingSessionsRows, openTasksRows] = await Promise.all([
+    const [cases, files, openTasks, expenses, upcomingSessionsRows, casesRows, openTasksRows] = await Promise.all([
       safeCountRows("cases", membership.office_id, { archived: 0 }),
       safeCountRows("office_files", membership.office_id, { archived: false }),
       safeCountRows("tasks", membership.office_id, { completed: false }),
@@ -85,6 +87,12 @@ export async function getDashboardData(): Promise<DashboardData | null> {
         .order("session_date", { ascending: true })
         .limit(5),
       supabase
+        .from("cases")
+        .select("id, case_code, client_name, opponent_name, case_number, case_year, court_name, circuit, case_subject")
+        .eq("office_id", membership.office_id)
+        .eq("archived", 0)
+        .limit(500),
+      supabase
         .from("tasks")
         .select("id, description, date, completed")
         .eq("office_id", membership.office_id)
@@ -95,11 +103,17 @@ export async function getDashboardData(): Promise<DashboardData | null> {
 
     if (upcomingSessionsRows.error) throw upcomingSessionsRows.error;
     if (openTasksRows.error) throw openTasksRows.error;
+    if (casesRows.error) throw casesRows.error;
+    const upcomingCases = (casesRows.data ?? []) as unknown as CaseRow[];
+    const upcomingSessions = (upcomingSessionsRows.data ?? []).map((session) => ({
+      ...session,
+      case: upcomingCases.find((item) => item.id === session.case_id) ?? null,
+    }));
 
     const result = {
       membership,
-      stats: { cases, files, upcomingSessions: upcomingSessionsRows.data?.length ?? 0, openTasks, expenses },
-      upcomingSessions: upcomingSessionsRows.data ?? [],
+      stats: { cases, files, upcomingSessions: upcomingSessions.length, openTasks, expenses },
+      upcomingSessions,
       openTasks: openTasksRows.data ?? [],
     };
     await cacheJson(`dashboard:${membership.office_id}`, result);
