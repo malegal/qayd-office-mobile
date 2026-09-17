@@ -3,11 +3,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Platform } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { useEffect, useState } from "react";
-import { AppState } from "react-native";
-import { getCurrentMembership } from "@/lib/office-data";
+import { AppState, Platform } from "react-native";
+import { getCurrentMembership, type OfficeMembership } from "@/lib/office-data";
 import { useOfflineSync } from "@/hooks/use-offline-sync";
 
 function SyncBootstrap() {
@@ -30,6 +29,9 @@ export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const bottomPadding = Platform.OS === "web" ? 12 : Math.max(insets.bottom, 8);
   const tabBarHeight = 56 + bottomPadding;
+  const [membership, setMembership] = useState<OfficeMembership | null>(null);
+  useEffect(() => { getCurrentMembership().then(setMembership).catch(() => setMembership(null)); }, []);
+  const canSeeFinance = membership?.role === "manager" || membership?.role === "accountant";
 
   return (
     <>
@@ -88,6 +90,7 @@ export default function TabLayout() {
         name="finance"
         options={{
           title: "المالية",
+          href: canSeeFinance ? undefined : null,
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="wallet.pass.fill" color={color} />,
         }}
       />
