@@ -83,6 +83,7 @@ export default function DashboardScreen() {
             <Text className="text-sm text-muted mb-1">صباح الخير</Text>
             <Text className="text-2xl font-bold text-foreground">{displayName}</Text>
           </View>
+          {dashboard?.membership.role === "manager" ? <Pressable onPress={() => router.push("/team")} style={({ pressed }) => [{ paddingHorizontal: 12, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }, pressed && { opacity: 0.7 }]}><Text className="text-xs font-bold" style={{ color: colors.primary }}>الفريق</Text></Pressable> : null}
           <Pressable onPress={handleSignOut} style={({ pressed }) => [{ width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }, pressed && { opacity: 0.7 }]}>
             <IconSymbol name="person.crop.circle" size={25} color={colors.primary} />
           </Pressable>

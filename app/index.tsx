@@ -4,98 +4,15 @@ import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useColors } from "@/hooks/use-colors";
 import { supabase } from "@/lib/supabase";
+import { getCurrentMembership } from "@/lib/office-data";
+import { createOffice } from "@/lib/office-onboarding";
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
 
 export default function LoginScreen() {
-  const colors = useColors();
-  const { session, loading: authLoading } = useSupabaseAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (!authLoading && session) router.replace("/(tabs)");
-  }, [authLoading, session]);
-
-  const handleLogin = async () => {
-    if (!email.trim() || !password) {
-      setError("أدخل البريد الإلكتروني وكلمة المرور.");
-      return;
-    }
-    setSubmitting(true);
-    setError("");
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
-    if (signInError) setError("بيانات الدخول غير صحيحة أو الحساب غير مفعل.");
-    setSubmitting(false);
-  };
-
-  if (authLoading || session) {
-    return <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.background }}><ActivityIndicator color={colors.primary} /></View>;
-  }
-
-  return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.background }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <StatusBar style="dark" />
-      <View className="flex-1 px-6 justify-center" style={{ direction: "rtl" }}>
-        <View className="items-center mb-10">
-          <View className="w-20 h-20 rounded-3xl items-center justify-center mb-5" style={{ backgroundColor: colors.foreground }}>
-            <Text className="text-4xl font-bold" style={{ color: colors.primary }}>Q</Text>
-          </View>
-          <Text className="text-3xl font-bold text-foreground text-center">Qayd Mobile</Text>
-          <Text className="text-base text-muted mt-2 text-center">إدارة المكتب القانوني</Text>
-        </View>
-
-        <View className="bg-surface rounded-3xl p-5 border border-border" style={{ shadowColor: colors.foreground, shadowOpacity: 0.08, shadowRadius: 18, elevation: 3 }}>
-          <Text className="text-2xl font-bold text-foreground mb-2">تسجيل الدخول</Text>
-          <Text className="text-sm text-muted mb-6">ادخل بحساب أحد أعضاء المكتب للوصول إلى بيانات العمل.</Text>
-
-          <Text className="text-sm font-bold text-foreground mb-2">البريد الإلكتروني</Text>
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            placeholder="name@example.com"
-            placeholderTextColor={colors.muted}
-            className="border border-border rounded-2xl px-4 py-3 text-foreground mb-4"
-            style={{ textAlign: "left", backgroundColor: colors.background }}
-          />
-
-          <View className="flex-row items-center justify-between mb-2">
-            <Text className="text-sm font-bold text-foreground">كلمة المرور</Text>
-            <Pressable onPress={() => setShowPassword((value) => !value)}>
-              <Text className="text-xs font-bold" style={{ color: colors.primary }}>{showPassword ? "إخفاء" : "إظهار"}</Text>
-            </Pressable>
-          </View>
-          <TextInput
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={!showPassword}
-            placeholder="••••••••"
-            placeholderTextColor={colors.muted}
-            className="border border-border rounded-2xl px-4 py-3 text-foreground mb-5"
-            style={{ textAlign: "left", backgroundColor: colors.background }}
-            onSubmitEditing={handleLogin}
-            returnKeyType="done"
-          />
-
-          {!!error && <Text className="text-sm mb-4" style={{ color: colors.error }}>{error}</Text>}
-          <Pressable
-            onPress={handleLogin}
-            disabled={submitting}
-            style={({ pressed }) => [{ backgroundColor: colors.primary, borderRadius: 16, paddingVertical: 15, alignItems: "center" }, pressed && { opacity: 0.85 }, submitting && { opacity: 0.6 }]}
-          >
-            {submitting ? <ActivityIndicator color={colors.background} /> : <Text className="font-bold text-base" style={{ color: colors.background }}>دخول إلى المكتب</Text>}
-          </Pressable>
-        </View>
-
-        <Text className="text-xs text-muted text-center mt-6">هذه النسخة مخصصة لفريق المكتب فقط. لا تستخدم بيانات العملاء على جهاز مشترك.</Text>
-      </View>
-    </KeyboardAvoidingView>
-  );
+  const colors = useColors(); const { session, loading: authLoading } = useSupabaseAuth();
+  const [mode, setMode] = useState<"login" | "signup">("login"); const [email, setEmail] = useState(""); const [password, setPassword] = useState(""); const [officeName, setOfficeName] = useState(""); const [submitting, setSubmitting] = useState(false); const [error, setError] = useState("");
+  useEffect(() => { if (!authLoading && session) getCurrentMembership().then((m) => router.replace(m ? "/(tabs)" : "/onboarding")).catch(() => router.replace("/onboarding")); }, [authLoading, session]);
+  const submit = async () => { if (!email.trim() || !password || (mode === "signup" && !officeName.trim())) return setError(mode === "signup" ? "أدخل البريد وكلمة المرور واسم المكتب." : "أدخل البريد وكلمة المرور."); setSubmitting(true); setError(""); try { if (mode === "login") { const { error: e } = await supabase.auth.signInWithPassword({ email: email.trim(), password }); if (e) throw e; } else { const { data, error: e } = await supabase.auth.signUp({ email: email.trim(), password }); if (e) throw e; if (!data.session) { setError("تم إنشاء الحساب. تحقق من البريد ثم سجل الدخول لإكمال تأسيس المكتب."); setMode("login"); } else await createOffice(officeName.trim(), email.trim()); } } catch (e) { setError(e instanceof Error ? e.message : "تعذر إتمام العملية."); } finally { setSubmitting(false); } };
+  if (authLoading || session) return <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.background }}><ActivityIndicator color={colors.primary} /></View>;
+  return <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.background }} behavior={Platform.OS === "ios" ? "padding" : undefined}><StatusBar style="dark" /><View className="flex-1 px-6 justify-center" style={{ direction: "rtl" }}><View className="items-center mb-8"><View className="w-20 h-20 rounded-3xl items-center justify-center mb-5" style={{ backgroundColor: colors.foreground }}><Text className="text-4xl font-bold" style={{ color: colors.primary }}>Q</Text></View><Text className="text-3xl font-bold text-foreground text-center">Qayd Mobile</Text><Text className="text-base text-muted mt-2 text-center">إدارة المكتب القانوني</Text></View><View className="bg-surface rounded-3xl p-5 border border-border"><Text className="text-2xl font-bold text-foreground mb-2">{mode === "login" ? "تسجيل الدخول" : "تأسيس مكتب جديد"}</Text>{mode === "signup" && <><Text className="text-sm font-bold text-foreground mb-2 mt-4">اسم المكتب</Text><TextInput value={officeName} onChangeText={setOfficeName} placeholder="مثال: مكتب الأستاذ..." placeholderTextColor={colors.muted} className="border border-border rounded-2xl px-4 py-3 text-foreground mb-4" style={{ textAlign: "right", backgroundColor: colors.background }} /></>}<Text className="text-sm font-bold text-foreground mb-2">البريد الإلكتروني</Text><TextInput value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="name@example.com" placeholderTextColor={colors.muted} className="border border-border rounded-2xl px-4 py-3 text-foreground mb-4" style={{ textAlign: "left", backgroundColor: colors.background }} /><Text className="text-sm font-bold text-foreground mb-2">كلمة المرور</Text><TextInput value={password} onChangeText={setPassword} secureTextEntry placeholder="••••••••" placeholderTextColor={colors.muted} className="border border-border rounded-2xl px-4 py-3 text-foreground mb-5" style={{ textAlign: "left", backgroundColor: colors.background }} onSubmitEditing={submit} /><>{!!error && <Text className="text-sm mb-4" style={{ color: colors.error }}>{error}</Text>}</><Pressable onPress={submit} disabled={submitting} style={{ backgroundColor: colors.primary, borderRadius: 16, paddingVertical: 15, alignItems: "center", opacity: submitting ? .6 : 1 }}>{submitting ? <ActivityIndicator color={colors.background} /> : <Text className="font-bold text-base" style={{ color: colors.background }}>{mode === "login" ? "دخول إلى المكتب" : "إنشاء حساب المالك"}</Text>}</Pressable><Pressable onPress={() => { setMode(mode === "login" ? "signup" : "login"); setError(""); }} className="mt-5"><Text className="text-sm font-bold text-center" style={{ color: colors.primary }}>{mode === "login" ? "أول مرة؟ تأسيس مكتب جديد" : "لدي حساب بالفعل — تسجيل الدخول"}</Text></Pressable></View><Text className="text-xs text-muted text-center mt-6">هذه النسخة مخصصة لفريق المكتب فقط.</Text></View></KeyboardAvoidingView>;
 }
