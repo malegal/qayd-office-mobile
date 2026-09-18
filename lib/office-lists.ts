@@ -22,14 +22,14 @@ export const getFees = (officeId: string, caseIds: string[]) => list<FeeRow>("fe
 export const getPayments = (officeId: string, caseIds: string[]) => list<PaymentRow>("payments", officeId, "id, case_id, amount, date, note", "payments", q => q.in("case_id", caseIds).order("date", { ascending: false }));
 export const getFinancialTransactions = (officeId: string) => list<FinancialTransaction>("financial_transactions", officeId, "id, office_id, transaction_type, transaction_scope, case_id, office_file_id, amount, transaction_date, category, description, payment_method, paid_from", "financial-transactions", q => q.eq("office_id", officeId).order("transaction_date", { ascending: false }));
 
-export async function getCaseDetails(officeId: string, caseId: string): Promise<CaseDetails> {
+export async function getCaseDetails(officeId: string, caseId: string, includeFinancial = true): Promise<CaseDetails> {
   const { data: caseRow, error: caseError } = await supabase.from("cases").select("id, office_id, case_code, client_name, client_phone, client_email, client_address, client_role, case_number, case_year, case_subject, court_name, circuit, case_type, opponent_name, opponent_phone, opponent_email, opponent_address, opponent_role, archived").eq("office_id", officeId).eq("id", caseId).single();
   if (caseError) throw caseError;
   const [sessions, feesRows, payments, transactions] = await Promise.all([
     getSessions(officeId).then((rows) => rows.filter((row) => row.case_id === caseId)),
-    getFees(officeId, [caseId]),
-    getPayments(officeId, [caseId]),
-    getFinancialTransactions(officeId).then((rows) => rows.filter((row) => row.case_id === caseId)),
+    includeFinancial ? getFees(officeId, [caseId]) : Promise.resolve([]),
+    includeFinancial ? getPayments(officeId, [caseId]) : Promise.resolve([]),
+    includeFinancial ? getFinancialTransactions(officeId).then((rows) => rows.filter((row) => row.case_id === caseId)) : Promise.resolve([]),
   ]);
   const income = transactions.filter((x) => x.transaction_type === "income").reduce((sum, x) => sum + Number(x.amount), 0);
   const expenses = transactions.filter((x) => x.transaction_type === "expense").reduce((sum, x) => sum + Number(x.amount), 0);
