@@ -68,6 +68,20 @@ export async function getCurrentMembership() {
   }
 }
 
+export async function getCurrentMembershipFresh() {
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
+  if (!user) return null;
+  const { data, error } = await supabase
+    .from("office_members")
+    .select("user_id, office_id, role, display_name")
+    .eq("user_id", user.id)
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data as OfficeMembership | null;
+}
+
 export async function getDashboardData(): Promise<DashboardData | null> {
   const membership = await getCurrentMembership();
   if (!membership) return null;
