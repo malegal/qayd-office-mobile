@@ -15,8 +15,12 @@ export async function acceptInvite(code: string, displayName?: string) {
 }
 
 export async function createInvite(officeId: string, contact: string, role: InviteRole) {
-  const { data, error } = await supabase.rpc("create_office_invite", { p_office_id: officeId, p_contact: contact, p_role: role, p_expires_hours: 168 });
-  if (error) throw error;
+  const normalizedOfficeId = officeId.trim();
+  const normalizedContact = contact.trim();
+  if (!normalizedOfficeId) throw new Error("معرّف المكتب غير متاح.");
+  if (!normalizedContact) throw new Error("البريد الإلكتروني أو رقم الهاتف مطلوب.");
+  const { data, error } = await supabase.rpc("create_office_invite", { p_office_id: normalizedOfficeId, p_contact: normalizedContact, p_role: role, p_expires_hours: 168 });
+  if (error) throw new Error(error.message || "تعذر إنشاء الدعوة.");
   return data as { id: string; code: string; role: InviteRole; expires_at: string };
 }
 

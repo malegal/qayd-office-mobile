@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
-import { getCurrentMembership } from "@/lib/office-data";
+import { getCurrentMembership, getCurrentMembershipFresh } from "@/lib/office-data";
 import { createInvite, createRecoveryCodes, listOfficeMembers, revokeMember, setMemberRole, type InviteRole } from "@/lib/office-onboarding";
 import { listMemberDevices, renameMember, type MemberDevice } from "@/lib/member-control";
 
@@ -34,10 +34,18 @@ export default function TeamScreen() {
   useEffect(() => { load().catch(() => setError("تعذر تحميل أعضاء المكتب.")); }, []);
 
   const invite = async () => {
-    if (!contact.trim()) return;
+    const normalizedContact = contact.trim();
+    if (!normalizedContact) { setError("أدخل البريد الإلكتروني أو رقم الهاتف أولًا."); return; }
     setBusy(true); setError("");
-    try { const result = await createInvite(officeId, contact, role); setCode(result.code); setContact(""); }
-    catch (e) { setError(e instanceof Error ? e.message : "تعذر إنشاء الدعوة."); }
+    try {
+      const freshMembership = await getCurrentMembershipFresh();
+      if (!freshMembership || freshMembership.role !== "manager") throw new Error("يجب أن تكون مالك المكتب لإنشاء دعوة.");
+      const result = await createInvite(freshMembership.office_id, normalizedContact, role);
+      setOfficeId(freshMembership.office_id); setCode(result.code); setContact("");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "تعذر إنشاء الدعوة.";
+      setError(message.includes("owner only") ? "الحساب الحالي ليس مالك المكتب في قاعدة البيانات." : message.includes("not authenticated") ? "انتهت جلسة الدخول؛ سجّل الدخول مرة أخرى." : `تعذر إنشاء الدعوة: ${message}`);
+    }
     finally { setBusy(false); }
   };
   const saveName = async (userId: string) => {
