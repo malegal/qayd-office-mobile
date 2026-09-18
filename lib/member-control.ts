@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 import Constants from "expo-constants";
 import * as Application from "expo-application";
 import { supabase } from "@/lib/supabase";
-import { clearOfflineData } from "@/lib/offline-store";
+export { revokeLocalAccess } from "@/lib/access-revocation";
 
 export type MemberDevice = {
   device_id: string;
@@ -46,11 +46,6 @@ export async function verifyCurrentMembership(officeId: string) {
     .maybeSingle();
   if (error) throw error;
   return Boolean(data);
-}
-
-export async function revokeLocalAccess() {
-  await clearOfflineData();
-  await supabase.auth.signOut({ scope: "local" });
 }
 
 export async function listMemberDevices(officeId: string, userId: string) {
