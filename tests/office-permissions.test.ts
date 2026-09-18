@@ -27,4 +27,20 @@ describe("office role permissions", () => {
       expect(can(role, "delete")).toBe(false);
     }
   });
+
+  it("allows every office team role to add fees, expenses, sessions, and tasks", () => {
+    for (const role of ["manager", "lawyer", "staff", "accountant"] as const) {
+      expect(can(role, "add_fee")).toBe(true);
+      expect(can(role, "add_expense")).toBe(true);
+      expect(can(role, "add_session")).toBe(true);
+      expect(can(role, "add_task")).toBe(true);
+    }
+  });
+
+  it("keeps collected fee payments owner/accountant-only", () => {
+    expect(can("manager", "add_payment")).toBe(true);
+    expect(can("accountant", "add_payment")).toBe(true);
+    expect(can("lawyer", "add_payment")).toBe(false);
+    expect(can("staff", "add_payment")).toBe(false);
+  });
 });
