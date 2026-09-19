@@ -11,10 +11,15 @@ export function useOfflineSync(officeId?: string) {
   const [lastResult, setLastResult] = useState<SyncSummary | null>(null);
 
   const refreshPending = useCallback(async () => {
+    if (!officeId) {
+      setPending(0);
+      return;
+    }
     setPending((await listPendingOperations(officeId)).length);
   }, [officeId]);
 
   const syncNow = useCallback(async () => {
+    if (!officeId) return { synced: 0, conflicts: 0, failed: 0, pending: 0 };
     setSyncing(true);
     try {
       const result = await syncPendingOperations(officeId);

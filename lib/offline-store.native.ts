@@ -59,6 +59,11 @@ async function database() {
   return databasePromise;
 }
 
+/** يهيئ قاعدة SQLite قبل عرض التبويبات. */
+export async function initOfflineStore() {
+  await database();
+}
+
 export async function enqueueOperation(input: Omit<OutboxItem, "operationId" | "status" | "attempts" | "lastError" | "createdAt">) {
   const item: OutboxItem = {
     ...input,

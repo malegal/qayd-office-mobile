@@ -28,6 +28,9 @@ export function makeOfflineId() {
 async function readOutbox() { return JSON.parse((await AsyncStorage.getItem(OUTBOX_KEY)) || "[]") as OutboxItem[]; }
 async function writeOutbox(items: OutboxItem[]) { await AsyncStorage.setItem(OUTBOX_KEY, JSON.stringify(items)); }
 
+/** يضمن جاهزية مخزن الويب قبل عرض التبويبات. */
+export async function initOfflineStore() {}
+
 export async function enqueueOperation(input: Omit<OutboxItem, "operationId" | "status" | "attempts" | "lastError" | "createdAt">) {
   const item: OutboxItem = { ...input, operationId: makeOfflineId(), status: "pending", attempts: 0, lastError: null, createdAt: new Date().toISOString() };
   const items = await readOutbox();
