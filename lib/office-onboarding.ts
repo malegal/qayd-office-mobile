@@ -11,7 +11,7 @@ export async function createOffice(name: string, email?: string, pin?: string) {
 export async function acceptInvite(code: string, displayName?: string) {
   const { data, error } = await supabase.rpc("accept_office_invite", { p_code: code, p_display_name: displayName || null });
   if (error) throw error;
-  return data as { office_id: string; role: InviteRole };
+  return data as { office_id: string; role: InviteRole | "member" };
 }
 
 export async function createInvite(officeId: string, contact: string, role: InviteRole) {

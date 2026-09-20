@@ -5,7 +5,7 @@ import type { CaseRow } from "@/lib/office-lists";
 export type OfficeMembership = {
   user_id: string;
   office_id: string;
-  role: "manager" | "lawyer" | "staff" | "accountant";
+  role: "manager" | "lawyer" | "staff" | "accountant" | "member";
   display_name: string | null;
 };
 
