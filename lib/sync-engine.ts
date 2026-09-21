@@ -38,7 +38,20 @@ export async function syncPendingOperations(officeId?: string): Promise<SyncSumm
     for (const item of items) try {
       await updateOperation(item.operationId, { attempts: item.attempts + 1, lastError: null });
       const result = await push(item);
-      if (result.status === "conflict") { conflicts++; await updateOperation(item.operationId, { status: "conflict", lastError: result.error || "تعارض مع تعديل أحدث" }); }
+      if (result.status === "conflict") {
+        conflicts++;
+        await supabase.from("sync_conflicts").upsert({
+          office_id: item.officeId,
+          operation_id: item.operationId,
+          entity_type: item.entityType,
+          entity_id: item.entityId,
+          local_payload: item.payload,
+          remote_payload: (result as any).remote_payload ?? {},
+          base_updated_at: item.baseUpdatedAt,
+          status: "pending",
+        }, { onConflict: "operation_id" });
+        await updateOperation(item.operationId, { status: "conflict", lastError: result.error || "تعارض مع تعديل أحدث" });
+      }
       else if (result.status === "rejected") { failed++; await updateOperation(item.operationId, { status: "error", lastError: result.error || "رفض الخادم العملية" }); }
       else { synced++; await removeOperation(item.operationId); }
     } catch (error) { failed++; await updateOperation(item.operationId, { lastError: error instanceof Error ? error.message : "تعذر الاتصال بالخادم" }); }
