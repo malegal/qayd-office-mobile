@@ -7,6 +7,11 @@ async function online() { try { const Network = await import("expo-network"); co
 
 async function push(item: OutboxItem) {
   // العمليات المالية الجديدة تستخدم الجدول الموحد مباشرة مع RLS؛ بقية الكيانات تستخدم RPC التوافقية.
+  if (item.entityType === "approval_requests") {
+    const { error } = await supabase.from("approval_requests").upsert({ id: item.entityId, ...item.payload, office_id: item.officeId }, { onConflict: "id" });
+    if (error) throw error;
+    return { status: "applied" };
+  }
   if (item.entityType === "financial_transactions") {
     const { error } = await supabase.from("financial_transactions").upsert({ id: item.entityId, ...item.payload, office_id: item.officeId }, { onConflict: "id" });
     if (error) throw error;

@@ -79,6 +79,7 @@ export default function TabLayout() {
         <Tabs.Screen name="sessions" options={{ title: "الجلسات", tabBarIcon: ({ color }) => <IconSymbol size={28} name="calendar.badge.clock" color={color} /> }} />
         <Tabs.Screen name="cases" options={{ title: "القضايا", tabBarIcon: ({ color }) => <IconSymbol size={28} name="briefcase.fill" color={color} /> }} />
         <Tabs.Screen name="files" options={{ title: "الملفات", tabBarIcon: ({ color }) => <IconSymbol size={28} name="folder.fill" color={color} /> }} />
+        <Tabs.Screen name="legal-files" options={{ title: "الملفات القانونية", href: null, tabBarIcon: ({ color }) => <IconSymbol size={28} name="folder.badge.plus" color={color} /> }} />
         <Tabs.Screen name="finance" options={{ title: "المالية", href: canSeeFinance ? undefined : null, tabBarIcon: ({ color }) => <IconSymbol size={28} name="wallet.pass.fill" color={color} /> }} />
         <Tabs.Screen name="pending" options={{ title: "المعلقة", tabBarIcon: ({ color }) => <IconSymbol size={28} name="checklist" color={color} /> }} />
         <Tabs.Screen name="notifications" options={{ title: "الإشعارات", tabBarIcon: ({ color }) => <IconSymbol size={28} name="bell.fill" color={color} /> }} />

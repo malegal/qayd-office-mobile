@@ -124,3 +124,24 @@ export async function getDashboardData(): Promise<DashboardData | null> {
     throw error;
   }
 }
+
+
+export type LegalFileRow = { id: string; office_id: string; file_code: string; file_type: string; title: string; status: string; client_name: string; client_phone: string | null; description: string | null; updated_at: string };
+export type ProceedingRow = { id: string; legal_file_id: string; proceeding_type: string; court_name: string | null; circuit: string | null; case_number: string | null; case_year: string | null; status: string; judgment_summary: string | null };
+export type ServiceActionRow = { id: string; legal_file_id: string; action_type: string; authority: string | null; next_followup_at: string | null; status: string; result: string | null };
+
+export async function getLegalFiles(officeId: string) {
+  const { data, error } = await supabase.from("legal_files").select("id, office_id, file_code, file_type, title, status, client_name, client_phone, description, updated_at").eq("office_id", officeId).order("updated_at", { ascending: false }).limit(500);
+  if (error) throw error;
+  return (data ?? []) as LegalFileRow[];
+}
+export async function getProceedings(officeId: string, legalFileId: string) {
+  const { data, error } = await supabase.from("proceedings").select("id, legal_file_id, proceeding_type, court_name, circuit, case_number, case_year, status, judgment_summary").eq("office_id", officeId).eq("legal_file_id", legalFileId).order("created_at", { ascending: true }).limit(100);
+  if (error) throw error;
+  return (data ?? []) as ProceedingRow[];
+}
+export async function getServiceActions(officeId: string, legalFileId: string) {
+  const { data, error } = await supabase.from("service_actions").select("id, legal_file_id, action_type, authority, next_followup_at, status, result").eq("office_id", officeId).eq("legal_file_id", legalFileId).order("next_followup_at", { ascending: true }).limit(100);
+  if (error) throw error;
+  return (data ?? []) as ServiceActionRow[];
+}

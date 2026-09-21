@@ -1,6 +1,6 @@
 import { Platform } from "react-native";
 
-export type OfflineEntity = "sessions" | "tasks" | "expenses" | "fees" | "payments" | "financial_transactions";
+export type OfflineEntity = "sessions" | "tasks" | "expenses" | "fees" | "payments" | "financial_transactions" | "approval_requests";
 export type OfflineOperation = "insert" | "update";
 export type OutboxStatus = "pending" | "conflict" | "error";
 
