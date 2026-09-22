@@ -5,29 +5,30 @@ let activeSync: Promise<SyncSummary> | null = null;
 export type SyncSummary = { synced: number; conflicts: number; failed: number; pending: number };
 async function online() { try { const Network = await import("expo-network"); const state = await Network.getNetworkStateAsync(); return Boolean(state.isConnected && state.isInternetReachable !== false); } catch { return true; } }
 
+function approvalAction(operation: string): "create" | "update" | "delete" | "reschedule" | "archive" {
+  if (operation === "update" || operation === "delete" || operation === "reschedule" || operation === "archive") return operation;
+  return "create";
+}
+
 async function push(item: OutboxItem) {
-  // العمليات المالية الجديدة تستخدم الجدول الموحد مباشرة مع RLS؛ بقية الكيانات تستخدم RPC التوافقية.
-  if (item.entityType === "approval_requests") {
-    const { error } = await supabase.from("approval_requests").upsert({ id: item.entityId, ...item.payload, office_id: item.officeId }, { onConflict: "id" });
-    if (error) throw error;
-    return { status: "applied" };
-  }
-  if (item.entityType === "financial_transactions") {
-    const { error } = await supabase.from("financial_transactions").upsert({ id: item.entityId, ...item.payload, office_id: item.officeId }, { onConflict: "id" });
-    if (error) throw error;
-    return { status: "applied" };
-  }
-  if (item.entityType === "fees") {
-    const { error } = await supabase.from("fees").upsert({ case_id: item.entityId, ...item.payload }, { onConflict: "case_id" });
-    if (error) throw error;
-    return { status: "applied" };
-  }
-  const { data, error } = await supabase.rpc("apply_mobile_operation", {
-    p_operation_id: item.operationId, p_office_id: item.officeId, p_entity_type: item.entityType,
-    p_entity_id: item.entityId, p_operation: item.operation, p_payload: item.payload, p_base_updated_at: item.baseUpdatedAt,
-  });
+  // سياسة المكتب الجديدة: لا يكتب الهاتف في الجداول التشغيلية مباشرة.
+  // كل جلسة/مهمة/قضية/ملاحظة/ملف/أتعاب/دفعة/مصروف/نفقة تصبح طلباً يراجعه المالك.
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("يجب تسجيل الدخول لإرسال طلب الاعتماد");
+  const { error } = await supabase.from("approval_requests").upsert({
+    id: item.operationId,
+    office_id: item.officeId,
+    requested_by: user.id,
+    entity_type: item.entityType === "financial_transactions" ? "financial_transaction" : item.entityType === "expenses" ? "expense" : item.entityType,
+    entity_id: item.entityId,
+    action: approvalAction(item.operation),
+    payload: item.payload,
+    base_updated_at: item.baseUpdatedAt,
+    reason: (item.payload as Record<string, unknown>).reason ?? "طلب مقدم من تطبيق الهاتف",
+    status: "pending",
+  }, { onConflict: "id" });
   if (error) throw error;
-  return data as { status?: string; error?: string };
+  return { status: "applied" };
 }
 
 export async function syncPendingOperations(officeId?: string): Promise<SyncSummary> {
@@ -40,21 +41,18 @@ export async function syncPendingOperations(officeId?: string): Promise<SyncSumm
       const result = await push(item);
       if (result.status === "conflict") {
         conflicts++;
-        await supabase.from("sync_conflicts").upsert({
-          office_id: item.officeId,
-          operation_id: item.operationId,
-          entity_type: item.entityType,
-          entity_id: item.entityId,
-          local_payload: item.payload,
-          remote_payload: (result as any).remote_payload ?? {},
-          base_updated_at: item.baseUpdatedAt,
-          status: "pending",
-        }, { onConflict: "operation_id" });
-        await updateOperation(item.operationId, { status: "conflict", lastError: result.error || "تعارض مع تعديل أحدث" });
+        await updateOperation(item.operationId, { status: "conflict", lastError: "طلب الاعتماد تعارض مع عملية أخرى" });
+      } else if (result.status === "rejected") {
+        failed++;
+        await updateOperation(item.operationId, { status: "error", lastError: "رفض الخادم طلب الاعتماد" });
+      } else {
+        synced++;
+        await removeOperation(item.operationId);
       }
-      else if (result.status === "rejected") { failed++; await updateOperation(item.operationId, { status: "error", lastError: result.error || "رفض الخادم العملية" }); }
-      else { synced++; await removeOperation(item.operationId); }
-    } catch (error) { failed++; await updateOperation(item.operationId, { lastError: error instanceof Error ? error.message : "تعذر الاتصال بالخادم" }); }
+    } catch (error) {
+      failed++;
+      await updateOperation(item.operationId, { lastError: error instanceof Error ? error.message : "تعذر إرسال طلب الاعتماد" });
+    }
     return { synced, conflicts, failed, pending: (await listPendingOperations(officeId)).length };
   })();
   try { return await activeSync; } finally { activeSync = null; }
