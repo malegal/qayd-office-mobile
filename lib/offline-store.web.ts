@@ -12,6 +12,8 @@ export type OutboxItem = {
   operation: OfflineOperation;
   payload: Record<string, unknown>;
   baseUpdatedAt: string | null;
+  /** مرفق اختياري (صورة رول) كـ data URL يُرسل مع طلب الاعتماد. */
+  attachment?: string | null;
   status: OutboxStatus;
   attempts: number;
   lastError: string | null;

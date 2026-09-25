@@ -2,7 +2,7 @@ import { readCachedJson, cacheJson } from "@/lib/offline-store";
 import { supabase } from "@/lib/supabase";
 export type CaseRow = { id: string; office_id?: string; case_code: string | null; client_name: string | null; client_phone?: string | null; client_email?: string | null; client_address?: string | null; client_role?: string | null; case_number?: string | null; case_year?: string | null; case_subject: string | null; court_name: string | null; circuit?: string | null; case_type?: string | null; opponent_name?: string | null; opponent_phone?: string | null; opponent_email?: string | null; opponent_address?: string | null; opponent_role?: string | null; archived: number };
 export type OfficeFileRow = { id: string; file_code: string | null; title: string | null; client_name: string | null; status: string | null; file_type: string | null };
-export type SessionRow = { id: string; case_id: string; session_date: string; case_status: string | null; decision: string | null };
+export type SessionRow = { id: string; case_id: string; session_date: string; case_status: string | null; decision: string | null; court_name?: string | null; circuit?: string | null; city?: string | null; required_action?: string | null; responsible_name?: string | null; followup_date?: string | null; updated_at?: string | null };
 export type TaskRow = { id: string; description: string; date: string; completed: boolean };
 export type ExpenseRow = { id: string; case_id: string | null; office_file_id: string | null; amount: number; expense_date: string; category: string; description: string | null };
 export type FeeRow = { case_id: string; total: number; paid: number; remaining: number; notes: string | null };

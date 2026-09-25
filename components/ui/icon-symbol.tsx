@@ -30,6 +30,22 @@ const MAPPING = {
   "paperplane.fill": "send",
   "chevron.left.forwardslash.chevron.right": "code",
   "chevron.right": "chevron-right",
+  "folder.fill": "folder",
+  "folder.badge.plus": "create-new-folder",
+  "bell.fill": "notifications",
+  "building.columns.fill": "gavel",
+  "camera.fill": "photo-camera",
+  "photo": "image",
+  "doc.text.fill": "description",
+  "arrow.uturn.left": "undo",
+  "xmark": "close",
+  "clock.fill": "schedule",
+  "checkmark.circle.fill": "check-circle",
+  "calendar": "calendar-today",
+  "list.bullet": "list",
+  "square.and.arrow.up": "share",
+  "chevron.left": "chevron-left",
+  "chevron.down": "expand-more",
 } as IconMapping;
 
 /**

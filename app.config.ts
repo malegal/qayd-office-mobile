@@ -113,6 +113,13 @@ const config: ExpoConfig = {
       },
     ],
     [
+      "expo-image-picker",
+      {
+        photosPermission: "السماح للتطبيق بالوصول إلى الصور لإرفاق صورة الرول.",
+        cameraPermission: "السماح للتطبيق باستخدام الكاميرا لتصوير الرول.",
+      },
+    ],
+    [
       "expo-build-properties",
       {
         android: {
@@ -125,6 +132,8 @@ const config: ExpoConfig = {
   experiments: {
     typedRoutes: true,
     reactCompiler: true,
+    // مسار النشر العام لنسخة الويب (يُمرَّر عبر EXPO_BASE_URL وقت البناء فقط، ولا يؤثر على نسخة الهاتف).
+    ...(process.env.EXPO_BASE_URL ? { baseUrl: process.env.EXPO_BASE_URL } : {}),
   },
   extra: {
     eas: {
