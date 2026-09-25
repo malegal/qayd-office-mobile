@@ -53,8 +53,11 @@ export default function TabLayout() {
   if (authLoading || !dbReady || (session && membership === undefined)) {
     return <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.background }}><ActivityIndicator color={colors.primary} /></View>;
   }
+  // لا توجد جلسة → نعود لشاشة الدخول الموحّدة.
   if (!session) return <Redirect href="/" />;
-  if (membership === null) return <Redirect href="/onboarding" />;
+  // جلسة موجودة لكن بلا عضوية في المكتب → نعود لنفس شاشة الدخول الموحّدة (/) التي
+  // تعرض لوحة «لا توجد عضوية» مع إعادة المحاولة/تسجيل الخروج. لا توجد شاشة دخول ثانية.
+  if (membership === null) return <Redirect href="/" />;
 
   return (
     <>

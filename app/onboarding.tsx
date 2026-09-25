@@ -1,107 +1,25 @@
-import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from "react-native";
-import { router } from "expo-router";
-import { useColors } from "@/hooks/use-colors";
-import { getCurrentMembership } from "@/lib/office-data";
-import { acceptInvite, createOffice, redeemRecoveryCode } from "@/lib/office-onboarding";
-import { supabase } from "@/lib/supabase";
+/**
+ * ============================================================================
+ *  /onboarding — تم إلغاؤه (تحويل فقط)
+ * ============================================================================
+ *
+ *  ملاحظة لأي مطوّر:
+ *  ---------------
+ *  كان التطبيق يحتوي على شاشتين للدخول: شاشة «الانضمام إلى المكتب» (index)
+ *  وشاشة تهيئة ثانية (onboarding). طلب مالك المكتب تبسيط التجربة إلى شاشة
+ *  واحدة فقط، فتمّ توحيد كل شيء داخل `app/index.tsx`.
+ *
+ *  هذا الملف بقي موجودًا فقط كي لا تتعطّل أي روابط قديمة تشير إلى /onboarding
+ *  (مثل إشارة مرجعية محفوظة في المتصفّح). بمجرّد فتحه يُحوّل المستخدم فورًا
+ *  إلى الشاشة الموحّدة في الجذر "/".
+ *
+ *  ⚠️ لا تُعِد بناء منطق الدخول هنا. عدّل `app/index.tsx` فقط.
+ * ============================================================================
+ */
 
-type Mode = "join" | "create" | "recover";
+import { Redirect } from "expo-router";
 
-export default function OnboardingScreen() {
-  const colors = useColors();
-  const [mode, setMode] = useState<Mode>("join");
-  const [value, setValue] = useState("");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [pin, setPin] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    getCurrentMembership()
-      .then((m) => {
-        if (m) router.replace("/(tabs)");
-      })
-      .catch(() => undefined);
-  }, []);
-
-  const run = async () => {
-    setBusy(true);
-    setError("");
-    try {
-      if (mode === "create") await createOffice(value, email, pin);
-      else if (mode === "join") await acceptInvite(value, name);
-      else await redeemRecoveryCode(value, name);
-      router.replace("/(tabs)");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "تعذر إتمام العملية.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const title = mode === "create" ? "تأسيس مكتب جديد" : mode === "join" ? "الانضمام إلى المكتب" : "استرداد دور المالك";
-  const hint =
-    mode === "create"
-      ? "أنشئ مكتبًا جديدًا لتصبح مالكه."
-      : mode === "join"
-        ? "أدخل كود الدعوة الذي أرسله لك مالك المكتب واسمك، ثم اضغط متابعة."
-        : "أدخل رمز الاسترداد لاستعادة دور المالك على هذا الجهاز.";
-
-  return (
-    <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24, justifyContent: "center", backgroundColor: colors.background }}>
-      <View style={{ direction: "rtl" }}>
-        <Text className="text-3xl font-bold text-foreground mb-2">{title}</Text>
-        <Text className="text-sm text-muted mb-6">{hint}</Text>
-
-        <View className="flex-row mb-5" style={{ direction: "rtl" }}>
-          {([
-            ["join", "كود دعوة"],
-            ["create", "إنشاء مكتب"],
-            ["recover", "استرداد مالك"],
-          ] as const).map(([key, label]) => (
-            <Pressable
-              key={key}
-              onPress={() => {
-                setMode(key);
-                setError("");
-              }}
-              style={{ flex: 1, padding: 10, marginLeft: 6, borderRadius: 12, backgroundColor: mode === key ? colors.primary : colors.surface }}
-            >
-              <Text style={{ textAlign: "center", color: mode === key ? colors.background : colors.foreground, fontWeight: "700", fontSize: 12 }}>{label}</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        {mode === "create" ? (
-          <>
-            <Text className="text-sm font-bold text-foreground mb-2">اسم المكتب</Text>
-            <TextInput value={value} onChangeText={setValue} placeholder="اسم المكتب" placeholderTextColor={colors.muted} className="border border-border rounded-2xl px-4 py-3 text-foreground mb-4" style={{ backgroundColor: colors.surface, textAlign: "right" }} />
-            <Text className="text-sm font-bold text-foreground mb-2">البريد المرتبط بالمكتب</Text>
-            <TextInput value={email} onChangeText={setEmail} placeholder="owner@example.com" placeholderTextColor={colors.muted} className="border border-border rounded-2xl px-4 py-3 text-foreground mb-4" style={{ backgroundColor: colors.surface, textAlign: "left" }} />
-            <Text className="text-sm font-bold text-foreground mb-2">PIN محلي اختياري</Text>
-            <TextInput value={pin} onChangeText={setPin} placeholder="لا تستخدمه كبديل لكلمة المرور" placeholderTextColor={colors.muted} className="border border-border rounded-2xl px-4 py-3 text-foreground mb-4" style={{ backgroundColor: colors.surface, textAlign: "left" }} />
-          </>
-        ) : (
-          <>
-            <Text className="text-sm font-bold text-foreground mb-2">{mode === "join" ? "كود الدعوة" : "رمز استرداد المالك"}</Text>
-            <TextInput value={value} onChangeText={setValue} autoCapitalize="characters" placeholder={mode === "join" ? "QYD-XXXX-XXXX" : "REC-XXXXX-XXXXX"} placeholderTextColor={colors.muted} className="border border-border rounded-2xl px-4 py-3 text-foreground mb-4" style={{ backgroundColor: colors.surface, textAlign: "left" }} />
-            <Text className="text-sm font-bold text-foreground mb-2">الاسم الظاهر</Text>
-            <TextInput value={name} onChangeText={setName} placeholder="اسمك داخل المكتب" placeholderTextColor={colors.muted} className="border border-border rounded-2xl px-4 py-3 text-foreground mb-4" style={{ backgroundColor: colors.surface, textAlign: "right" }} />
-          </>
-        )}
-
-        {!!error && <Text className="text-sm mb-4" style={{ color: colors.error }}>{error}</Text>}
-
-        <Pressable onPress={run} disabled={busy} style={{ backgroundColor: colors.primary, borderRadius: 16, paddingVertical: 15, alignItems: "center", opacity: busy ? 0.6 : 1 }}>
-          {busy ? <ActivityIndicator color={colors.background} /> : <Text className="font-bold" style={{ color: colors.background }}>متابعة</Text>}
-        </Pressable>
-
-        <Pressable onPress={() => supabase.auth.signOut()} className="mt-5">
-          <Text className="text-sm text-muted text-center">تسجيل الخروج</Text>
-        </Pressable>
-      </View>
-    </ScrollView>
-  );
+export default function OnboardingRedirect() {
+  // تحويل دائم إلى شاشة الدخول الموحّدة.
+  return <Redirect href="/" />;
 }
