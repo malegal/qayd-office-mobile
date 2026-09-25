@@ -5,9 +5,9 @@ import { type PropsWithChildren } from "react";
  * قشرة HTML المخصّصة لنسخة الويب (تُستخدم فقط عند تصدير الويب الثابت).
  * الهدف: توحيد مسار الصفحة قبل تشغيل الراوتر حتى يعمل التطبيق على أي رابط نشر
  * ينتهي بـ index.html أو اسم صفحة .html (بعض خدمات الاستضافة الثابتة لا تخدم
- * مجلد الجذر مباشرة).
+ * مجلد الجذر مباشرة)، مع تسجيل Service Worker يخدم قشرة التطبيق عند إعادة التحديث.
  */
-const normalizePathScript = `
+const bootScript = `
 (function () {
   try {
     var p = window.location.pathname;
@@ -16,6 +16,12 @@ const normalizePathScript = `
       window.history.replaceState(null, "", np + window.location.search + window.location.hash);
     }
   } catch (e) {}
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js").catch(function () {});
+    });
+  }
 })();
 `;
 
@@ -28,7 +34,7 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
         <meta name="theme-color" content="#0f172a" />
         <ScrollViewStyleReset />
-        <script dangerouslySetInnerHTML={{ __html: normalizePathScript }} />
+        <script dangerouslySetInnerHTML={{ __html: bootScript }} />
       </head>
       <body>{children}</body>
     </html>
