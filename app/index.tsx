@@ -89,17 +89,47 @@ export default function LoginScreen() {
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
 
-  /** ترجمة رسائل أخطاء Supabase الإنجليزية إلى رسائل عربية واضحة. */
-  const translateAuthError = (message: string) => {
-    const text = message.toLowerCase();
+  /**
+   * ترجمة رسائل أخطاء Supabase الإنجليزية إلى رسائل عربية واضحة.
+   * تُعيد "" إذا لم تُطابق أي نمط معروف، حتى نتمكّن من عرض الرسالة الأصلية
+   * بدلًا من إخفائها خلف «خطأ غير معروف».
+   */
+  const translateAuthError = (message: string): string => {
+    const text = (message || "").toLowerCase();
     if (text.includes("invalid login credentials")) return "البريد الإلكتروني أو كلمة المرور غير صحيحة.";
-    if (text.includes("email not confirmed")) return "يجب تأكيد البريد الإلكتروني أولًا من الرسالة المرسلة إليك.";
-    if (text.includes("user already registered")) return "هذا الحساب موجود بالفعل. استخدم كلمة المرور المسجلة.";
-    if (text.includes("rate limit")) return "محاولات كثيرة، انتظر قليلًا ثم حاول مرة أخرى.";
+    if (text.includes("email not confirmed"))
+      return "لم يتم تأكيد البريد الإلكتروني بعد. يُفضّل أن يُعطّل مالك المكتب خيار «تأكيد البريد» من إعدادات المكتب.";
+    if (text.includes("user already registered") || text.includes("already been registered"))
+      return "هذا الحساب موجود بالفعل. استخدم كلمة المرور المسجّلة، أو جرّب «تسجيل الدخول».";
+    if (text.includes("rate limit") || text.includes("too many requests"))
+      return "محاولات كثيرة، انتظر قليلًا ثم حاول مرة أخرى.";
     if (text.includes("password should be at least")) return "كلمة المرور قصيرة جدًا؛ استخدم 8 أحرف على الأقل.";
     if (text.includes("invalid phone")) return "رقم الهاتف غير صالح.";
-    if (text.includes("network") || text.includes("fetch")) return "تحقق من اتصالك بالإنترنت.";
-    return "تعذر إتمام العملية. حاول مرة أخرى.";
+    if (text.includes("not authenticated")) return "انتهت الجلسة. أعد تسجيل الدخول.";
+    if (text.includes("invite") && (text.includes("invalid") || text.includes("not found") || text.includes("expired") || text.includes("used")))
+      return "كود الدعوة غير صالح أو منتهي أو مُستخدَم من قبل.";
+    if (text.includes("network") || text.includes("fetch")) return "تحقّق من اتصالك بالإنترنت.";
+    return "";
+  };
+
+  /**
+   * استخراج رسالة خطأ مفهومة من أي خطأ (AuthError أو PostgrestError أو Error عادي).
+   * مهم: أخطاء Supabase (PostgrestError) ليست دائمًا من نوع Error، لذا نقرأ الحقول
+   * مباشرة ونعرض رسالة الخادم الأصلية إن لم نجد ترجمة مناسبة (بدل «خطأ غير معروف»).
+   */
+  const describeError = (e: unknown): string => {
+    if (e && typeof e === "object") {
+      const anyE = e as { message?: string; error_description?: string; details?: string; hint?: string };
+      const raw = anyE.message || anyE.error_description || anyE.details || anyE.hint || "";
+      const mapped = translateAuthError(raw);
+      if (mapped) return mapped;
+      if (raw) return raw;
+    }
+    if (e instanceof Error) {
+      const mapped = translateAuthError(e.message);
+      return mapped || e.message;
+    }
+    return "تعذّر إتمام العملية. حاول مرة أخرى.";
   };
 
   /**
@@ -134,11 +164,7 @@ export default function LoginScreen() {
         router.replace("/(tabs)");
         return true;
       } catch (e) {
-        setError(
-          "تعذّر قبول الدعوة: " +
-            (e instanceof Error ? e.message : "خطأ غير معروف") +
-            " — تأكد أن كود الدعوة صحيح ولم يُستخدم من قبل.",
-        );
+        setError("تعذّر قبول الدعوة: " + describeError(e));
       }
     }
 
@@ -151,7 +177,7 @@ export default function LoginScreen() {
         router.replace("/(tabs)");
         return true;
       } catch (e) {
-        setError("تعذّر تأسيس المكتب: " + (e instanceof Error ? e.message : "خطأ غير معروف"));
+        setError("تعذّر تأسيس المكتب: " + describeError(e));
       }
     }
 
@@ -212,7 +238,10 @@ export default function LoginScreen() {
         const { data, error: e } = await supabase.auth.signUp({ email: email.trim(), password });
         if (e) throw e;
         if (!data.session) {
-          setInfo("تم إنشاء الحساب. افتح رسالة البريد وأكّد الحساب، وسيُكمل تأسيس المكتب تلقائيًا عند العودة.");
+          setInfo(
+            "تم إنشاء الحساب، لكن المكتب يتطلّب تأكيد البريد الإلكتروني قبل الدخول ولم تصل رسالة التأكيد. " +
+              "اطلب من مالك المكتب تعطيل «تأكيد البريد» من إعدادات Supabase (Authentication ← Providers ← Email ← Confirm email = OFF)، ثم سجّل الدخول مباشرة.",
+          );
         }
       } else {
         // الانضمام عبر كود الدعوة: نحفظ النيّة، ثم ندخل أو ننشئ الحساب.
@@ -233,9 +262,8 @@ export default function LoginScreen() {
           }
           if (!created.data.session) {
             setInfo(
-              isPhone
-                ? "تم إنشاء الحساب. أكّد رقم الهاتف، وسيُكمل الانضمام تلقائيًا عند العودة."
-                : "تم إنشاء الحساب. افتح رسالة البريد وأكّد الحساب، وسيُكمل الانضمام تلقائيًا عند العودة.",
+              "تم إنشاء حسابك، لكن الدخول يتطلّب تأكيد البريد الإلكتروني ولم تصل رسالة التأكيد. " +
+                "اطلب من مالك المكتب تعطيل «تأكيد البريد» من إعدادات Supabase (Authentication ← Providers ← Email ← Confirm email = OFF)، ثم سجّل الدخول مباشرة بكلمة المرور.",
             );
             return;
           }
@@ -243,7 +271,7 @@ export default function LoginScreen() {
         // بعد نجاح الدخول/الإنشاء، سيتولّى resolveMembership قبول الدعوة تلقائيًا.
       }
     } catch (e) {
-      setError(translateAuthError(e instanceof Error ? e.message : "تعذر إتمام العملية."));
+      setError(describeError(e));
     } finally {
       setSubmitting(false);
     }
@@ -373,7 +401,24 @@ export default function LoginScreen() {
             )}
 
             {!!error && <Text className="text-sm mb-4" style={{ color: colors.error }}>{error}</Text>}
-            {!!info && <Text className="text-sm mb-4" style={{ color: colors.primary }}>{info}</Text>}
+            {!!info && (
+              <>
+                <Text className="text-sm mb-2" style={{ color: colors.primary }}>{info}</Text>
+                {mode !== "login" && email.trim().includes("@") ? (
+                  <Pressable
+                    onPress={async () => {
+                      setError("");
+                      const { error: resendError } = await supabase.auth.resend({ type: "signup", email: email.trim() });
+                      if (resendError) setError(describeError(resendError));
+                      else setInfo("تم إرسال رسالة تأكيد جديدة (إن كان الحساب بحاجة إلى تأكيد).");
+                    }}
+                    className="mb-4"
+                  >
+                    <Text className="text-sm font-bold" style={{ color: colors.primary }}>إعادة إرسال رسالة التأكيد</Text>
+                  </Pressable>
+                ) : null}
+              </>
+            )}
 
             <Pressable
               onPress={submit}
