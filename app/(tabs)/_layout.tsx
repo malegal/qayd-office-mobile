@@ -74,15 +74,18 @@ export default function TabLayout() {
           },
         }}
       >
-        <Tabs.Screen name="index" options={{ title: "الرئيسية", tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} /> }} />
-        <Tabs.Screen name="quick-actions" options={{ title: "إضافة", tabBarIcon: ({ color }) => <IconSymbol size={28} name="plus.circle" color={color} /> }} />
-        <Tabs.Screen name="sessions" options={{ title: "الجلسات", tabBarIcon: ({ color }) => <IconSymbol size={28} name="calendar.badge.clock" color={color} /> }} />
+        <Tabs.Screen name="index" options={{ title: "الرول", tabBarIcon: ({ color }) => <IconSymbol size={28} name="building.columns.fill" color={color} /> }} />
         <Tabs.Screen name="cases" options={{ title: "القضايا", tabBarIcon: ({ color }) => <IconSymbol size={28} name="briefcase.fill" color={color} /> }} />
-        <Tabs.Screen name="files" options={{ title: "الملفات", tabBarIcon: ({ color }) => <IconSymbol size={28} name="folder.fill" color={color} /> }} />
+        <Tabs.Screen name="expenses" options={{ title: "المصروفات", tabBarIcon: ({ color }) => <IconSymbol size={28} name="wallet.pass.fill" color={color} /> }} />
+        <Tabs.Screen name="tasks" options={{ title: "المهام", tabBarIcon: ({ color }) => <IconSymbol size={28} name="checklist" color={color} /> }} />
+        <Tabs.Screen name="finance" options={{ title: "المالية", href: canSeeFinance ? undefined : null, tabBarIcon: ({ color }) => <IconSymbol size={28} name="chart.bar.fill" color={color} /> }} />
+        <Tabs.Screen name="dashboard" options={{ title: "الرئيسية", href: null, tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} /> }} />
+        <Tabs.Screen name="quick-actions" options={{ title: "إضافة", href: null, tabBarIcon: ({ color }) => <IconSymbol size={28} name="plus.circle" color={color} /> }} />
+        <Tabs.Screen name="sessions" options={{ title: "الجلسات", href: null, tabBarIcon: ({ color }) => <IconSymbol size={28} name="calendar.badge.clock" color={color} /> }} />
+        <Tabs.Screen name="files" options={{ title: "الملفات", href: null, tabBarIcon: ({ color }) => <IconSymbol size={28} name="folder.fill" color={color} /> }} />
         <Tabs.Screen name="legal-files" options={{ title: "الملفات القانونية", href: null, tabBarIcon: ({ color }) => <IconSymbol size={28} name="folder.badge.plus" color={color} /> }} />
-        <Tabs.Screen name="finance" options={{ title: "المالية", href: canSeeFinance ? undefined : null, tabBarIcon: ({ color }) => <IconSymbol size={28} name="wallet.pass.fill" color={color} /> }} />
-        <Tabs.Screen name="pending" options={{ title: "المعلقة", tabBarIcon: ({ color }) => <IconSymbol size={28} name="checklist" color={color} /> }} />
-        <Tabs.Screen name="notifications" options={{ title: "الإشعارات", tabBarIcon: ({ color }) => <IconSymbol size={28} name="bell.fill" color={color} /> }} />
+        <Tabs.Screen name="pending" options={{ title: "المعلقة", href: null, tabBarIcon: ({ color }) => <IconSymbol size={28} name="clock.fill" color={color} /> }} />
+        <Tabs.Screen name="notifications" options={{ title: "الإشعارات", href: null, tabBarIcon: ({ color }) => <IconSymbol size={28} name="bell.fill" color={color} /> }} />
       </Tabs>
     </>
   );

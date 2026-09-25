@@ -19,6 +19,55 @@ async function queue(officeId: string, input: Parameters<typeof enqueueOperation
 export function queueSession(officeId: string, input: { caseId: string; sessionDate: string; caseStatus?: string; decision?: string }) {
   return queue(officeId, { officeId, entityType: "sessions", entityId: uuid(), operation: "insert", baseUpdatedAt: null, payload: { case_id: input.caseId, session_date: input.sessionDate, case_status: input.caseStatus ?? "محدد", decision: input.decision ?? "" } });
 }
+
+/**
+ * «إثبات القرار والترحيل»:
+ * 1) تحديث الجلسة الحالية بالقرار والحالة (update على نفس الجلسة).
+ * 2) إنشاء الجلسة القادمة (insert) بتاريخ جديد والمطلوب فيها.
+ * كلاهما يتحوّل إلى طلب اعتماد يراجعه المالك، مع إمكانية إرفاق صورة الرول.
+ */
+export async function queueSessionDecision(officeId: string, input: {
+  sessionId: string;
+  decision: string;
+  caseStatus: string;
+  nextDate: string;
+  caseId: string;
+  requiredAction?: string;
+  courtName?: string | null;
+  circuit?: string | null;
+  notes?: string;
+  attachment?: string | null;
+}) {
+  const decisionItem = await queue(officeId, {
+    officeId,
+    entityType: "sessions",
+    entityId: input.sessionId,
+    operation: "update",
+    baseUpdatedAt: null,
+    payload: { decision: input.decision, case_status: input.caseStatus },
+    attachment: input.attachment ?? null,
+  });
+  const nextItem = await queue(officeId, {
+    officeId,
+    entityType: "sessions",
+    entityId: uuid(),
+    operation: "insert",
+    baseUpdatedAt: null,
+    payload: {
+      case_id: input.caseId,
+      session_date: input.nextDate,
+      case_status: "أول جلسة",
+      decision: "",
+      required_action: input.requiredAction ?? "",
+      court_name: input.courtName ?? null,
+      circuit: input.circuit ?? null,
+      responsible_name: null,
+      followup_date: null,
+      reason: input.notes ? `ترحيل من الرول · ${input.notes}` : "ترحيل من الرول",
+    },
+  });
+  return { decisionItem, nextItem };
+}
 export function queueTask(officeId: string, input: { description: string; date: string }) {
   return queue(officeId, { officeId, entityType: "tasks", entityId: uuid(), operation: "insert", baseUpdatedAt: null, payload: { description: input.description, date: input.date, completed: false } });
 }

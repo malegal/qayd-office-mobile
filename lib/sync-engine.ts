@@ -10,23 +10,63 @@ function approvalAction(operation: string): "create" | "update" | "delete" | "re
   return "create";
 }
 
+/**
+ * يربط نوع الكيان المحلي (بصيغة الجمع) بالاسم المفرد المتوقّع في قيد قاعدة البيانات
+ * وفي مركز اعتماد المالك (reviewTableMap).
+ * كان الخلل السابق يرسل "sessions"/"tasks"/"fees"/"payments" فتخالف قيد approval_requests_entity_type_check.
+ */
+const ENTITY_TYPE_MAP: Record<string, string> = {
+  sessions: "session",
+  tasks: "task",
+  fees: "fee",
+  payments: "payment",
+  expenses: "expense",
+  financial_transactions: "financial_transaction",
+  legal_files: "legal_file",
+  service_actions: "service_action",
+  proceedings: "proceeding",
+  cases: "case",
+  notes: "note",
+};
+
+export function approvalEntityType(entityType: string) {
+  return ENTITY_TYPE_MAP[entityType] ?? entityType;
+}
+
 async function push(item: OutboxItem) {
   // سياسة المكتب الجديدة: لا يكتب الهاتف في الجداول التشغيلية مباشرة.
   // كل جلسة/مهمة/قضية/ملاحظة/ملف/أتعاب/دفعة/مصروف/نفقة تصبح طلباً يراجعه المالك.
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("يجب تسجيل الدخول لإرسال طلب الاعتماد");
-  const { error } = await supabase.from("approval_requests").upsert({
+
+  const baseRow = {
     id: item.operationId,
     office_id: item.officeId,
     requested_by: user.id,
-    entity_type: item.entityType === "financial_transactions" ? "financial_transaction" : item.entityType === "expenses" ? "expense" : item.entityType,
+    entity_type: approvalEntityType(item.entityType),
     entity_id: item.entityId,
     action: approvalAction(item.operation),
     payload: item.payload,
     base_updated_at: item.baseUpdatedAt,
     reason: (item.payload as Record<string, unknown>).reason ?? "طلب مقدم من تطبيق الهاتف",
     status: "pending",
-  }, { onConflict: "id" });
+  };
+
+  const attachment = item.attachment ?? null;
+  if (attachment) {
+    // نحاول إرفاق الصورة في عمود attachment_url إن وُجد.
+    const { error } = await supabase.from("approval_requests").upsert({ ...baseRow, attachment_url: attachment }, { onConflict: "id" });
+    if (!error) return { status: "applied" };
+    // إذا لم يكن العمود موجوداً بعد (لم يُنفّذ الترحيل)، نُعيد المحاولة دون المرفق.
+    const { error: retryError } = await supabase.from("approval_requests").upsert(
+      { ...baseRow, reason: `${baseRow.reason} · مرفق صورة رول` },
+      { onConflict: "id" },
+    );
+    if (retryError) throw retryError;
+    return { status: "applied" };
+  }
+
+  const { error } = await supabase.from("approval_requests").upsert(baseRow, { onConflict: "id" });
   if (error) throw error;
   return { status: "applied" };
 }

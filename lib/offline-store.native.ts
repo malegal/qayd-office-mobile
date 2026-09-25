@@ -12,6 +12,8 @@ export type OutboxItem = {
   operation: OfflineOperation;
   payload: Record<string, unknown>;
   baseUpdatedAt: string | null;
+  /** مرفق اختياري (صورة رول) كـ data URL يُرسل مع طلب الاعتماد. */
+  attachment?: string | null;
   status: OutboxStatus;
   attempts: number;
   lastError: string | null;
@@ -53,6 +55,8 @@ async function database() {
           updated_at TEXT NOT NULL
         );
       `);
+      // ترقية آمنة: إضافة عمود المرفق لقواعد البيانات القديمة.
+      try { await db.execAsync("ALTER TABLE outbox ADD COLUMN attachment TEXT;"); } catch { /* العمود موجود بالفعل */ }
       return db;
     });
   }
@@ -90,7 +94,7 @@ export async function listPendingOperations(officeId?: string) {
   const db = await database();
   if (!db) return memoryOutbox.filter((item) => (!officeId || item.officeId === officeId) && item.status === "pending");
   const rows = await db.getAllAsync(
-    `SELECT operation_id, office_id, entity_type, entity_id, operation, payload, base_updated_at, status, attempts, last_error, created_at FROM outbox WHERE status = 'pending' ${officeId ? "AND office_id = ?" : ""} ORDER BY created_at ASC`,
+    `SELECT operation_id, office_id, entity_type, entity_id, operation, payload, base_updated_at, attachment, status, attempts, last_error, created_at FROM outbox WHERE status = 'pending' ${officeId ? "AND office_id = ?" : ""} ORDER BY created_at ASC`,
     ...(officeId ? [officeId] : []),
   );
   return (rows as Array<Record<string, any>>).map((row) => ({
@@ -101,6 +105,7 @@ export async function listPendingOperations(officeId?: string) {
     operation: row.operation,
     payload: JSON.parse(row.payload),
     baseUpdatedAt: row.base_updated_at,
+    attachment: row.attachment ?? null,
     status: row.status,
     attempts: row.attempts,
     lastError: row.last_error,
