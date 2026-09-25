@@ -109,6 +109,8 @@ export default function LoginScreen() {
     if (text.includes("invite") && (text.includes("invalid") || text.includes("not found") || text.includes("expired") || text.includes("used")))
       return "كود الدعوة غير صالح أو منتهي أو مُستخدَم من قبل.";
     if (text.includes("network") || text.includes("fetch")) return "تحقّق من اتصالك بالإنترنت.";
+    if (text.includes("does not exist") && (text.includes("digest") || text.includes("function")))
+      return "خطأ في إعداد قاعدة البيانات (دالة الدعوة). يرجى تشغيل ملف الإصلاح supabase_fix_invite_digest.sql في SQL Editor.";
     return "";
   };
 
