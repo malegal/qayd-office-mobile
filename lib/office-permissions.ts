@@ -28,9 +28,9 @@ export function can(role: OfficeRole | null | undefined, permission: OfficePermi
   return Boolean(role && permissions[role]?.includes(permission));
 }
 
-/** المالية التفصيلية (الأتعاب/المحصلة/المتبقية) للمالك والمحاسب فقط. */
+/** الأتعاب والمقبوضات والمتبقي بيانات مالك المكتب فقط. */
 export function canViewFinance(role: OfficeRole | null | undefined) {
-  return role === "manager" || role === "accountant";
+  return role === "manager";
 }
 
 /** الاسم البديل الواضح: هل يستطيع رؤية الأرقام المالية للقضايا؟ */
@@ -43,7 +43,16 @@ export function canViewFinancials(role: OfficeRole | null | undefined) {
  * عضو المكتب لا يرى عدّاد القضايا في المكتب مطلقاً.
  */
 export function canViewCaseCount(role: OfficeRole | null | undefined) {
-  return Boolean(role) && role !== "member";
+  return role === "manager";
+}
+
+/** كل تعديل أو حذف أو أرشفة لسجل قائم محصور بالمالك. */
+export function canEdit(role: OfficeRole | null | undefined) {
+  return role === "manager";
+}
+
+export function canArchive(role: OfficeRole | null | undefined) {
+  return role === "manager";
 }
 
 /** الحذف محصور بالمالك فقط (manager)؛ لا يحذف عضو المكتب ولا أي دور آخر. */

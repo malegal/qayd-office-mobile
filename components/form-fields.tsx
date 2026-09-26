@@ -17,7 +17,7 @@ export function Field({ label, value, onChangeText, placeholder, keyboardType = 
         multiline={multiline}
         numberOfLines={multiline ? 3 : 1}
         className="rounded-2xl px-4 py-3 text-foreground border border-border"
-        style={{ backgroundColor: colors.background, textAlign: "right", minHeight: multiline ? 84 : undefined, textAlignVertical: multiline ? "top" : "center" }}
+        style={{ backgroundColor: colors.surface, textAlign: "right", minHeight: multiline ? 84 : undefined, textAlignVertical: multiline ? "top" : "center" }}
       />
     </View>
   );
@@ -40,13 +40,13 @@ export function DateField({ label, value, onChange }: { label: string; value: st
   return (
     <View className="mb-4">
       <Text className="text-sm font-bold text-foreground mb-2">{label}</Text>
-      <Pressable onPress={() => setOpen(true)} className="rounded-2xl px-4 py-3 border border-border flex-row items-center justify-between" style={{ backgroundColor: colors.background, direction: "rtl" }}>
+      <Pressable onPress={() => setOpen(true)} className="rounded-2xl px-4 py-3 border border-border flex-row items-center justify-between" style={{ backgroundColor: colors.surface, direction: "rtl" }}>
         <Text className="text-base text-foreground">{value || "اختر التاريخ"}</Text>
         <IconSymbol name="calendar.badge.clock" size={21} color={colors.primary} />
       </Pressable>
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <View style={{ flex: 1, backgroundColor: "#0008", justifyContent: "center", padding: 20 }}>
-          <View className="rounded-3xl p-5" style={{ backgroundColor: colors.background, direction: "rtl" }}>
+          <View className="rounded-3xl p-5" style={{ backgroundColor: colors.surface, direction: "rtl" }}>
             <View className="flex-row items-center justify-between mb-5">
               <Pressable onPress={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}><Text style={{ color: colors.primary, fontSize: 25 }}>‹</Text></Pressable>
               <Text className="text-lg font-bold text-foreground">{MONTHS[month.getMonth()]} {month.getFullYear()}</Text>
@@ -60,7 +60,7 @@ export function DateField({ label, value, onChange }: { label: string; value: st
                 </Pressable>
               ))}
             </View>
-            <Pressable onPress={() => setOpen(false)} className="mt-4 rounded-xl py-3" style={{ backgroundColor: colors.surface, alignItems: "center" }}>
+            <Pressable onPress={() => setOpen(false)} className="mt-4 rounded-xl py-3" style={{ backgroundColor: colors.background, alignItems: "center" }}>
               <Text className="font-bold" style={{ color: colors.primary }}>إلغاء</Text>
             </Pressable>
           </View>
@@ -76,20 +76,20 @@ export function SelectField({ label, value, options, onChange, placeholder = "ا
   return (
     <View className="mb-4">
       <Text className="text-sm font-bold text-foreground mb-2">{label}</Text>
-      <Pressable onPress={() => setOpen(true)} className="rounded-2xl px-4 py-3 border border-border flex-row items-center justify-between" style={{ backgroundColor: colors.background, direction: "rtl" }}>
+      <Pressable onPress={() => setOpen(true)} className="rounded-2xl px-4 py-3 border border-border flex-row items-center justify-between" style={{ backgroundColor: colors.surface, direction: "rtl" }}>
         <Text className="text-base text-foreground">{value || placeholder}</Text>
-        <Text style={{ color: colors.primary, fontSize: 18 }}>⌄</Text>
+        <IconSymbol name="chevron.down" size={20} color={colors.primary} />
       </Pressable>
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <View style={{ flex: 1, backgroundColor: "#0008", justifyContent: "center", padding: 24 }}>
-          <View className="rounded-3xl p-5" style={{ backgroundColor: colors.background, direction: "rtl" }}>
+          <View className="rounded-3xl p-5" style={{ backgroundColor: colors.surface, direction: "rtl" }}>
             <Text className="text-lg font-bold text-foreground mb-4">{label}</Text>
             {options.map((option) => (
-              <Pressable key={option} onPress={() => { onChange(option); setOpen(false); }} className="rounded-xl p-4 mb-2" style={{ backgroundColor: value === option ? `${colors.primary}20` : colors.surface, borderWidth: 1, borderColor: value === option ? colors.primary : colors.border }}>
+              <Pressable key={option} onPress={() => { onChange(option); setOpen(false); }} className="rounded-xl p-4 mb-2" style={{ backgroundColor: value === option ? `${colors.primary}20` : colors.background, borderWidth: 1, borderColor: value === option ? colors.primary : colors.border }}>
                 <Text className="text-base text-foreground">{option}</Text>
               </Pressable>
             ))}
-            <Pressable onPress={() => setOpen(false)} className="mt-2 rounded-xl py-3" style={{ backgroundColor: colors.surface, alignItems: "center" }}>
+            <Pressable onPress={() => setOpen(false)} className="mt-2 rounded-xl py-3" style={{ backgroundColor: colors.background, alignItems: "center" }}>
               <Text className="font-bold" style={{ color: colors.primary }}>إلغاء</Text>
             </Pressable>
           </View>

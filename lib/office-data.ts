@@ -75,7 +75,7 @@ export async function getDashboardData(): Promise<DashboardData | null> {
 
   try {
     const [cases, files, openTasks, expenses, upcomingSessionsRows, casesRows, openTasksRows] = await Promise.all([
-      safeCountRows("cases", membership.office_id, { archived: 0 }),
+      membership.role === "manager" ? safeCountRows("cases", membership.office_id, { archived: 0 }) : Promise.resolve(0),
       safeCountRows("office_files", membership.office_id, { archived: false }),
       safeCountRows("tasks", membership.office_id, { completed: false }),
       safeCountRows("expenses", membership.office_id),

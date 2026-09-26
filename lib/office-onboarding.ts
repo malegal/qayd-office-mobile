@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase";
 
-export type InviteRole = "lawyer" | "staff" | "accountant";
+export type InviteRole = "member" | "lawyer" | "staff" | "accountant";
 
 export async function createOffice(name: string, email?: string, pin?: string) {
   const { data, error } = await supabase.rpc("create_office_for_current_user", { p_office_name: name, p_email: email || null, p_pin: pin || null });

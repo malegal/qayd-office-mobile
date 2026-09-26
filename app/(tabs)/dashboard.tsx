@@ -99,12 +99,12 @@ export default function DashboardScreen() {
           {offline.pending > 0 ? <Pressable onPress={offline.syncNow}><Text className="text-xs font-bold" style={{ color: colors.primary }}>{offline.pending} قيد الانتظار · مزامنة</Text></Pressable> : <Text className="text-xs text-muted">لا تغييرات معلقة</Text>}
         </View>
 
-        <View className="rounded-3xl p-5 mb-5" style={{ backgroundColor: colors.foreground, direction: "rtl" }}>
+        <View className="rounded-3xl p-5 mb-5" style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, direction: "rtl" }}>
           <View className="flex-row items-center justify-between">
             <View className="flex-1">
               <Text className="text-xs mb-2" style={{ color: colors.primary }}>QAYD OFFICE</Text>
-              <Text className="text-2xl font-bold" style={{ color: colors.background }}>إدارة المكتب في مكان واحد</Text>
-              <Text className="text-sm mt-2 leading-6" style={{ color: "#B9C5D0" }}>تابع القضايا، الجلسات، المهام والحسابات اليومية بأمان.</Text>
+              <Text className="text-2xl font-bold text-foreground">إدارة المكتب في مكان واحد</Text>
+              <Text className="text-sm mt-2 leading-6 text-muted">تابع الجلسات والمهام وسجّل ما يتم لحظة بلحظة.</Text>
             </View>
             <IconSymbol name="chart.bar.fill" size={48} color={colors.primary} />
           </View>
@@ -131,7 +131,7 @@ export default function DashboardScreen() {
           </View>
           {dashboard?.upcomingSessions.length ? dashboard.upcomingSessions.map((item) => {
             const c = item.case;
-            return <Pressable key={item.id} onPress={async () => { if (c) setSelectedCase(await getCaseDetails(dashboard.membership.office_id, c.id)); }} className="py-3" style={({ pressed }) => [{ borderTopWidth: 1, borderTopColor: colors.border, opacity: pressed ? 0.7 : 1 }]}>
+            return <Pressable key={item.id} onPress={async () => { if (c) setSelectedCase(await getCaseDetails(dashboard.membership.office_id, c.id, dashboard.membership.role === "manager")); }} className="py-3" style={({ pressed }) => [{ borderTopWidth: 1, borderTopColor: colors.border, opacity: pressed ? 0.7 : 1 }]}>
               <View className="flex-row items-center" style={{ direction: "rtl" }}>
                 <View className="w-10 h-10 rounded-xl items-center justify-center ml-3" style={{ backgroundColor: `${colors.primary}20` }}><IconSymbol name="calendar.badge.clock" size={20} color={colors.primary} /></View>
                 <View className="flex-1"><Text className="text-sm font-bold text-foreground">{c?.client_name || "قضية بدون اسم"}</Text><Text className="text-xs text-muted mt-1">رقم القضية: {c?.case_number || "غير مسجل"}{c?.case_year ? ` / ${c.case_year}` : ""}</Text><Text className="text-xs text-muted mt-1">الجلسة: {item.session_date} · {item.case_status || "غير محددة"}</Text></View>

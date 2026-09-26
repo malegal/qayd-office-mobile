@@ -110,7 +110,7 @@ export default function RollScreen() {
                 <Text className="text-xs text-muted mr-2">· {group.circuit}</Text>
               </View>
               {group.items.map((item) => (
-                <RollCard key={item.session.id} item={item} colors={colors} onTransfer={() => setActive(item)} />
+                <RollCard key={item.session.id} item={item} colors={colors} canEdit={membership?.role === "manager" || !item.session.decision} onTransfer={() => setActive(item)} />
               ))}
             </View>
           ))
@@ -128,7 +128,7 @@ export default function RollScreen() {
   );
 }
 
-function RollCard({ item, colors, onTransfer }: { item: RollItem; colors: ReturnType<typeof useColors>; onTransfer: () => void }) {
+function RollCard({ item, colors, canEdit, onTransfer }: { item: RollItem; colors: ReturnType<typeof useColors>; canEdit: boolean; onTransfer: () => void }) {
   const c = item.case;
   const time = sessionTime(item.session.session_date);
   const done = Boolean(item.session.decision);
@@ -147,10 +147,10 @@ function RollCard({ item, colors, onTransfer }: { item: RollItem; colors: Return
           <Text className="text-xs mt-1" style={{ color: done ? colors.success : colors.muted }}>{done ? `القرار: ${item.session.decision}` : `الحالة: ${item.session.case_status || "غير محددة"}`}</Text>
         </View>
       </View>
-      <Pressable onPress={onTransfer} style={({ pressed }) => [{ marginTop: 12, backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 11, alignItems: "center", flexDirection: "row", justifyContent: "center", opacity: pressed ? 0.8 : 1 }]}>
-        <IconSymbol name="building.columns.fill" size={18} color={colors.background} />
-        <Text className="text-sm font-bold mr-2" style={{ color: colors.background }}>{done ? "تعديل القرار / ترحيل" : "إثبات القرار والترحيل"}</Text>
-      </Pressable>
+      {canEdit ? <Pressable onPress={onTransfer} style={({ pressed }) => [{ marginTop: 12, backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 11, alignItems: "center", flexDirection: "row", justifyContent: "center", opacity: pressed ? 0.8 : 1 }]}>
+        <IconSymbol name="building.columns.fill" size={18} color={colors.surface} />
+        <Text className="text-sm font-bold mr-2" style={{ color: colors.surface }}>{done ? "تعديل القرار / ترحيل" : "إثبات القرار والترحيل"}</Text>
+      </Pressable> : <Text className="text-xs mt-3 text-muted" style={{ textAlign: "center" }}>تم تسجيل القرار — بانتظار اعتماد المالك</Text>}
     </View>
   );
 }

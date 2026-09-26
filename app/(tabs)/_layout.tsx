@@ -48,7 +48,7 @@ export default function TabLayout() {
     });
   }, [session]);
 
-  const canSeeFinance = membership?.role === "manager" || membership?.role === "accountant";
+  const canSeeFinance = membership?.role === "manager";
 
   if (authLoading || !dbReady || (session && membership === undefined)) {
     return <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.background }}><ActivityIndicator color={colors.primary} /></View>;

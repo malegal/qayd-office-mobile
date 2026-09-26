@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { can, canAddPayment, canViewFinance } from "../lib/office-permissions";
+import { can, canAddPayment, canEdit, canViewCaseCount, canViewFinance } from "../lib/office-permissions";
 
 describe("office role permissions", () => {
   it("gives the owner full control", () => {
@@ -11,7 +11,7 @@ describe("office role permissions", () => {
 
   it("keeps finance visibility and payments accounting-only", () => {
     expect(canViewFinance("manager")).toBe(true);
-    expect(canViewFinance("accountant")).toBe(true);
+    expect(canViewFinance("accountant")).toBe(false);
     expect(canViewFinance("lawyer")).toBe(false);
     expect(canAddPayment("accountant")).toBe(true);
     expect(canAddPayment("lawyer")).toBe(false);
@@ -26,5 +26,15 @@ describe("office role permissions", () => {
       expect(can(role, "edit")).toBe(false);
       expect(can(role, "delete")).toBe(false);
     }
+  });
+
+  it("hides sensitive totals and existing-record edits from the team", () => {
+    for (const role of ["lawyer", "staff", "accountant", "member"] as const) {
+      expect(canViewCaseCount(role)).toBe(false);
+      expect(canViewFinance(role)).toBe(false);
+      expect(canEdit(role)).toBe(false);
+    }
+    expect(canViewCaseCount("manager")).toBe(true);
+    expect(canEdit("manager")).toBe(true);
   });
 });
